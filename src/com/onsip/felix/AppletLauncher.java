@@ -5,6 +5,8 @@ package com.onsip.felix;
  */
 
 import java.applet.Applet;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,6 +26,10 @@ import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
+
+import sun.net.ProgressEvent;
+import sun.net.ProgressListener;
+import sun.net.ProgressSource;
 
 import com.onsip.felix.handlers.CallHandler;
 import com.onsip.felix.handlers.CallPeerHandler;
@@ -56,6 +62,17 @@ public class AppletLauncher
     private final static String JS_EVT_LOADING = "loading";
     private final static String JS_EVT_LOADED = "loaded";
     private final static String JS_EVT_UNLOADED = "unloaded";
+    private final static String JS_EVT_DOWNLOAD = "download";
+    
+    private final static int PERC_CREATE_FRAMEWORK = 10;
+    private final static int PERC_INIT_FRAMEWORK = 15;
+    private final static int PERC_DOWNLOAD_FRAMEWORK = 20;
+    private final static int PERC_START_FRAMEWORK = 25;
+    private final static int PERC_SETUP_HANDLERS = 90;
+    private final static int PERC_COMPLETE = 100;
+    
+    private final static int EXPECTED_REGISTERED = 37;
+    private static int REGISTERED_COUNTER = 0;
     
     /**
      * Client side javascript callback function   
@@ -97,8 +114,7 @@ public class AppletLauncher
      **/
     public static final String CONFIG_PROPERTIES_FILE_VALUE =
         "felix.onsip.properties";
-
-            
+    
     private static Framework m_fwk = null;
         
     public static String CONFIG_URL = "";
@@ -108,8 +124,7 @@ public class AppletLauncher
     private LoadEventSource m_loadEventSource = null;
     
     static 
-    {        
-        
+    {                
         m_logger.setParent(java.util.logging.Logger.getLogger("com.onsip"));
         
         Properties props = new Properties();            
@@ -125,8 +140,7 @@ public class AppletLauncher
             java.util.logging.Level.SEVERE.toString());
         props.setProperty("gov.nist", 
             java.util.logging.Level.SEVERE.toString());
-        
-                    
+                       
         try
         { 
             /*
@@ -144,10 +158,10 @@ public class AppletLauncher
         { 
             System.out.println("Error initializing log properties: " + e.getMessage());
             e.printStackTrace(); 
-        }                                                         
-                      
+        }            
+                              
     }
-    
+        
     public void init()
     {
         try
@@ -161,7 +175,7 @@ public class AppletLauncher
                 new String[] 
                    { this.getSerializedEvent
                         (JS_EVT_UNLOADED, "init applet", 0) });
-            
+                                    
             m_logger.log(Level.INFO, "");            
             m_logger.log(Level.INFO, "OS name: " + 
                 System.getProperty("os.name"));
@@ -187,8 +201,11 @@ public class AppletLauncher
                 m.invoke(this.getClass().getClassLoader(), 
                     new Object[]{ false });                                
             }
-                                    
-            main(new String[] {});           
+            
+            /* Monitor the progress of bundle downloads */ 
+            setupDownloadMonitoring();
+            
+            main(new String[] {});                        
         }
         catch (Exception e)
         {            
@@ -197,7 +214,66 @@ public class AppletLauncher
                 "create Framework didn't complete successfully");
         }
     }
-
+    
+    public void stop()
+    {                         
+        Runtime.getRuntime().exit(0);        
+    }    
+    
+    public void destroy()
+    {        
+        System.exit(0);
+    }
+    
+    private void setupDownloadMonitoring()
+    {
+        try
+        {       
+            /*
+             * Setup progress monitoring on jar bundle downloads
+             */
+            sun.plugin.util.ProgressMonitor progressMonitor = 
+                (sun.plugin.util.ProgressMonitor) 
+                    sun.net.ProgressMonitor.getDefault();
+            
+            progressMonitor.addProgressListener(
+                Thread.currentThread().getThreadGroup(), 
+                    new ProgressListener() {
+                        @Override
+                        public void progressFinish(ProgressEvent e)
+                        {
+                            m_loadEventSource.fireEvent(
+                                new String[] 
+                                   { getSerializedDownloadEvent(e) });                            
+                            m_logger.log(Level.FINE, "Download finished " + e);                            
+                        }
+        
+                        @Override
+                        public void progressStart(ProgressEvent e)
+                        {                                    
+                            m_loadEventSource.fireEvent(
+                                new String[] 
+                                   { getSerializedDownloadEvent(e) });
+                            m_logger.log(Level.FINE, "Download started " + e);
+                        }
+        
+                        @Override
+                        public void progressUpdate(ProgressEvent e)
+                        {
+                            m_loadEventSource.fireEvent(
+                                new String[] 
+                                   { getSerializedDownloadEvent(e) });
+                            m_logger.log(Level.FINE, "Download updated " + e);
+                        }
+                    });
+        }
+        catch (Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Error initializing Progress Monitor: " + e.getMessage());
+            e.printStackTrace(); 
+        }
+    }
+    
     private static String getFelixCacheDir() throws Exception 
     {
         String dir = System.getProperty("deployment.user.cachedir");        
@@ -389,12 +465,13 @@ public class AppletLauncher
         }
 
         try
-        {        
+        {                                
             /* 10% Complete */
             m_loadEventSource.fireEvent(
                 new String[] 
                    { this.getSerializedEvent
-                        (JS_EVT_LOADING, "create new framework", 10) });
+                        (JS_EVT_LOADING, "create new framework", 
+                            PERC_CREATE_FRAMEWORK) });
                         
             /* Create an instance of the framework. */
             FrameworkFactory factory = getFrameworkFactory();
@@ -404,7 +481,8 @@ public class AppletLauncher
             m_loadEventSource.fireEvent(
                 new String[] 
                    { this.getSerializedEvent
-                        (JS_EVT_LOADING, "init framework", 15) });
+                        (JS_EVT_LOADING, "init framework", 
+                            PERC_INIT_FRAMEWORK) });
                         
             /* Initialize the framework, but don't start it yet. */            
             m_fwk.init();            
@@ -414,7 +492,8 @@ public class AppletLauncher
             m_loadEventSource.fireEvent(
                 new String[] 
                    { this.getSerializedEvent
-                        (JS_EVT_LOADING, "download framework bundles", 20) });
+                        (JS_EVT_LOADING, "download framework bundles", 
+                            PERC_DOWNLOAD_FRAMEWORK) });
             
             /*
              * Use the system bundle context to process the auto-deploy and
@@ -428,7 +507,8 @@ public class AppletLauncher
             m_loadEventSource.fireEvent(
                 new String[] 
                    { this.getSerializedEvent
-                        (JS_EVT_LOADING, "start framework bundles", 25) });
+                        (JS_EVT_LOADING, "start framework bundles", 
+                            PERC_START_FRAMEWORK) });
                         
             /* Start the framework. */            
             m_fwk.start();             
@@ -437,15 +517,29 @@ public class AppletLauncher
             m_loadEventSource.fireEvent(
                 new String[] 
                    { this.getSerializedEvent
-                        (JS_EVT_LOADED, 
-                            "setup event handlers in activator", 90) });
+                        (JS_EVT_LOADING, 
+                            "setup event handlers in activator", 
+                                PERC_SETUP_HANDLERS) });
             
             initHandlers();                        
             
-            /* 100% Complete */
-            m_loadEventSource.fireEvent(
-                new String[] 
-                   { this.getSerializedEvent(JS_EVT_LOADED, "done", 100) });
+            int delay = 500;
+            ActionListener taskPerformer = new ActionListener() {
+                public void actionPerformed(ActionEvent evt) {                    
+                    /* 100% Complete */
+                    m_loadEventSource.fireEvent(
+                        new String[] 
+                           { getSerializedEvent(JS_EVT_LOADED, 
+                               "done", PERC_COMPLETE) });                    
+                }
+            };
+            
+            javax.swing.Timer t = new javax.swing.Timer(delay, taskPerformer);
+            t.setRepeats(false);
+            t.start();
+            
+            /* make sure no more loading events are sent to the client */
+            REGISTERED_COUNTER = EXPECTED_REGISTERED; 
         }
         catch (Exception ex)
         {
@@ -659,8 +753,7 @@ public class AppletLauncher
 
         String felixCacheDir = getFelixCacheDir();
         props.setProperty("org.osgi.framework.storage", felixCacheDir);
-        props.setProperty("felix.cache.rootdir", felixCacheDir);
-                   
+        props.setProperty("felix.cache.rootdir", felixCacheDir);              
         return props;
     }
 
@@ -778,40 +871,51 @@ public class AppletLauncher
      */
     public boolean api(String fnName, String [] args)
     {
-        System.out.println("In api call " + fnName + " " + args.length);
+        m_logger.log(Level.FINE, "In api call " + fnName + " " + args.length);
         for (int i=0; i < args.length ; i++)
         {
-            System.out.println("arg " + i + " => " + args[0]);
+            if (!fnName.equalsIgnoreCase("register"))
+            {
+                m_logger.log(Level.FINE, "arg " + i + " => " + args[i]);
+            }
         }
         AccessController.doPrivileged(new Generic(fnName, args));
         return true; 
     }
-        
-    public long status() 
-    {
-        return new Date().getTime();
-    }
-    
-    public void stop()
-    {                         
-        Runtime.getRuntime().exit(0);        
-    }    
-    
-    public void destroy()
-    {        
-        System.exit(0);
-    }
-        
+                       
     public void serviceChanged(ServiceEvent event)
-    {
-        
+    {        
         String[] objectClass =
             (String[]) event.getServiceReference().getProperty("objectClass");
 
         if (event.getType() == ServiceEvent.REGISTERED)
-        {            
+        {               
             m_logger.log(Level.FINE, "Service of type "
-                + objectClass[0] + " REGISTERED. ");                                                                                                            
+                + objectClass[0] + " REGISTERED. ");
+            
+            if (REGISTERED_COUNTER < EXPECTED_REGISTERED)
+            {
+                REGISTERED_COUNTER++;
+                double counter = REGISTERED_COUNTER;
+                double total = EXPECTED_REGISTERED;
+                double percent = (counter / total) * 100.0;
+                percent = 
+                    ((PERC_SETUP_HANDLERS - PERC_START_FRAMEWORK) * percent) 
+                        / 100;
+                percent = PERC_START_FRAMEWORK + percent;
+                if (percent > PERC_SETUP_HANDLERS)
+                {
+                    percent = PERC_SETUP_HANDLERS;
+                }
+                           
+                int percentAbs = (int) Math.floor(percent);
+                                                    
+                m_loadEventSource.fireEvent(
+                    new String[] 
+                       { this.getSerializedEvent
+                            (JS_EVT_LOADING, "registering bundle " + 
+                                objectClass[0], percentAbs) });
+            }
         }
         else if (event.getType() == ServiceEvent.UNREGISTERING)
         {
@@ -891,94 +995,35 @@ public class AppletLauncher
             state + "\",\"details\":{\"progress\":\"" + 
                 (int) Math.abs(progress) + "\",\"message\":\"" + 
                     msg + "\"}" + '}';
+    }  
+    
+    private static String getSerializedDownloadEvent(ProgressEvent e)
+    {        
+        String state = "";
+        if (e.getState() == ProgressSource.State.NEW)
+        {
+            state = "started";
+        }
+        else if (e.getState() == ProgressSource.State.UPDATE)
+        {
+            state = "downloading";
+        }
+        else if (e.getState() == ProgressSource.State.DELETE)
+        {
+            state = "complete";
+        }
+        else if (e.getState() == ProgressSource.State.CONNECTED)
+        {
+            state = "connected";
+        }
+        double progress = ((double) e.getProgress() / 
+            (double) e.getExpected()) * 100;
+        return '{' + "\"package\":\"loader\",\"type\":\"" + 
+            JS_EVT_DOWNLOAD + "\",\"details\":{\"progress\":\"" + 
+                ((int) Math.floor(progress)) + "\",\"url\":\"" +  
+                    e.getURL().toExternalForm() + 
+                        "\", \"message\":\"" +                
+                            state + "\"}" + '}';        
     }
-    
-    /**
-     * We temporarily remove these 
-     * exported functions in favor of a single
-     * API function that parses the request
-     */
-    
-    /**
-     * @return microphone info
-     */
-    /**
-    public String micCheck()
-    {
-        String mic = (String) AccessController.doPrivileged
-            (new DefaultAudioDevice());
-        return mic;
-    }
-    **/
-    
-    /**
-     * Answer call
-     */
-    /**
-    public void pickupCall()
-    {
-        AccessController.doPrivileged(new PickupCall());
-    }
-    **/
-    
-    /**
-     * Terminate call
-     */
-    /**
-    public void hangup()
-    {
-        AccessController.doPrivileged(new Terminate());
-    }
-    **/
-    
-    /**
-     * Make outgoing call
-     * @param sip DID
-     */
-    /**
-    public void makeCall(String sip)
-    {
-        AccessController.doPrivileged(new Call(sip));
-    }
-    **/
-    
-    /**
-     * Mute / Un-Mute
-     * @param mute
-     */
-    /**
-    public void mute(String mute)
-    {
-        Boolean b = new Boolean(mute);
-        AccessController.doPrivileged(new Mute(b.booleanValue()));
-    }
-    **/
-    
-    /**
-     * Register device
-     * 
-     * @param userId
-     * @param displayName
-     * @param authUsername 
-     * @param password
-     */
-    /**
-    public void register(String userId, String displayName,
-        String authUsername, String password)
-    {
-        AccessController.doPrivileged(
-            new Register(userId, displayName, authUsername, password));
-    }
-    **/
-    
-    /**
-     * Unregister device
-     */
-    /**
-    public void unregister()
-    {
-        AccessController.doPrivileged(new Unregister());
-    }
-    **/
-    
+        
 }
