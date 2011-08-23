@@ -40,7 +40,7 @@ public class Terminate implements PrivilegedAction<Object>
         return m;
     }
     
-    public static Method getMethodPerCallId(Object service) 
+    public static Method getMethodForCallId(Object service) 
         throws SecurityException, NoSuchMethodException        
     {                
         Class<? extends Object> clazz =

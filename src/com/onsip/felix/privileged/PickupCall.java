@@ -39,7 +39,7 @@ public class PickupCall
         return m;
     }
     
-    public static Method getMethodByCallId(Object service) 
+    public static Method getMethodForCallId(Object service) 
         throws SecurityException, NoSuchMethodException        
     {                
         Class<? extends Object> clazz =

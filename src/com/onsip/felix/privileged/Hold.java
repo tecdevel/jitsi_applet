@@ -48,7 +48,7 @@ public class Hold
         return m;
     }
     
-    public static Method getMethodPerCallId(Object service) 
+    public static Method getMethodForCallId(Object service) 
         throws SecurityException, NoSuchMethodException        
     {                
         Class<? extends Object> clazz =
