@@ -125,7 +125,7 @@ public class Generic
                 }
                 else if(this.args.length == 1)
                 {
-                    m = Terminate.getMethodPerCallId(service);
+                    m = Terminate.getMethodForCallId(service);
                 }   
                 else
                 {
@@ -139,11 +139,18 @@ public class Generic
                 }
                 else if(this.args.length == 1)
                 {
-                    m = PickupCall.getMethodByCallId(service);
+                    m = PickupCall.getMethodForCallId(service);
                 }                
                 break;    
             case SEND_TONE:
-                m = DtmfKeyPress.getMethod(service);
+                if (this.args.length == 1)
+                {
+                    m = DtmfKeyPress.getMethod(service);
+                }
+                else if(this.args.length == 2)
+                {
+                    m = DtmfKeyPress.getMethodForCallId(service);
+                }                
                 break;
             case MUTE:
                 if (this.args.length == 1)
@@ -152,7 +159,7 @@ public class Generic
                 }
                 else if(this.args.length == 2)
                 {
-                    m = Mute.getMethodByCallId(service);                    
+                    m = Mute.getMethodForCallId(service);                    
                 }               
                 break;              
             case HOLD:
@@ -162,7 +169,7 @@ public class Generic
                 }
                 else if (this.args.length == 2)
                 {
-                    m = Hold.getMethodPerCallId(service);
+                    m = Hold.getMethodForCallId(service);
                 }
                 else if (this.args.length == 3)
                 {

@@ -53,5 +53,17 @@ public class DtmfKeyPress
             new Class[] { char.class });
                                          
         return m;
-    }   
+    }
+    
+    public static Method getMethodForCallId(Object service) 
+        throws SecurityException, NoSuchMethodException        
+    {                
+        Class<? extends Object> clazz =
+            service.getClass();
+    
+        Method m = clazz.getMethod("dispatchKeyEvent", 
+            new Class[]{String.class, char.class});
+        
+        return m;
+    }
 }
