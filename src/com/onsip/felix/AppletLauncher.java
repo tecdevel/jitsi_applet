@@ -18,12 +18,15 @@ import java.util.logging.Level;
 
 import org.apache.felix.framework.util.Util;
 import org.apache.felix.main.AutoProcessor;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.BundleListener;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.Version;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
 
@@ -40,6 +43,7 @@ import com.onsip.felix.sources.CallEventSource;
 import com.onsip.felix.sources.CallPeerEventSource;
 import com.onsip.felix.sources.LoadEventSource;
 import com.onsip.felix.sources.RegistrationEventSource;
+import com.onsip.felix.updates.Updater;
 
 import netscape.javascript.*;
 
@@ -70,7 +74,7 @@ public class AppletLauncher
     private final static int PERC_START_FRAMEWORK = 25;
     private final static int PERC_SETUP_HANDLERS = 90;
     private final static int PERC_COMPLETE = 100;
-    
+        
     private final static int EXPECTED_REGISTERED = 37;
     private static int REGISTERED_COUNTER = 0;
     
@@ -159,7 +163,18 @@ public class AppletLauncher
             System.out.println("Error initializing log properties: " + e.getMessage());
             e.printStackTrace(); 
         }            
-                              
+             
+        try
+        {
+            m_logger.info("Check for any old storage caches");
+            Updater.trash();
+        }
+        catch (Exception e)
+        {
+            System.out.println(
+                "Error while trying to delete all cache stores " + e);
+            e.printStackTrace();
+        }
     }
         
     public void init()
@@ -216,12 +231,12 @@ public class AppletLauncher
     }
     
     public void stop()
-    {                         
+    {                                 
         Runtime.getRuntime().exit(0);        
     }    
     
     public void destroy()
-    {        
+    {                
         System.exit(0);
     }
     
@@ -291,73 +306,7 @@ public class AppletLauncher
         throw new Exception("Felix Cache Directory not set in applet");        
     }
 
-    private static void cleanFelixCacheDir() 
-    {
-        m_logger.log(Level.FINE, "Clean up felix / jitsi storage");
-        String dir = System.getProperty("deployment.user.cachedir");
-        if (dir == null) {
-            dir = System.getProperty("user.home");
-        }
-        String separator = System.getProperty("file.separator");
-        m_logger.log(Level.FINE, "Using felix cache dir - " + dir);
-        File fFelixCache = new File(dir + separator + "felix-cache");
         
-        /* first, we try to delete the felix cache */
-        try
-        {
-            if (fFelixCache.exists() && fFelixCache.isDirectory()) 
-            {
-                fFelixCache.delete();
-            }
-        }
-        catch(Exception e)
-        {
-            m_logger.log(Level.SEVERE, "Error while deleting felix cache directory, " + 
-                "try deleting on exit");
-            try
-            {
-                /* if deletion fails, then try to remove on exit */
-                if (fFelixCache.exists() && fFelixCache.isDirectory()) 
-                {
-                    fFelixCache.deleteOnExit();
-                }   
-            }
-            catch(Exception e2)
-            {
-                m_logger.log(Level.SEVERE, 
-                    "Error even while deleting felix cache directory on exit");
-            }
-        }
-        
-        File fSipCommunicator = new File(dir + separator + ".sip-communicator");
-        /* second, we try to delete the sip communicator cache */
-        try
-        {
-            if (fSipCommunicator.exists() && fSipCommunicator.isDirectory()) 
-            {
-                fSipCommunicator.delete();
-            }
-        }
-        catch(Exception e)
-        {
-            m_logger.log(Level.SEVERE, "Error while deleting jitsi cache directory, " + 
-                "try deleting on exit");
-            try
-            {
-                /* if deletion fails, then try to remove on exit */
-                if (fSipCommunicator.exists() && fSipCommunicator.isDirectory()) 
-                {
-                    fSipCommunicator.deleteOnExit();
-                }   
-            }
-            catch(Exception e2)
-            {
-                m_logger.log(Level.SEVERE, 
-                    "Error even while deleting jitsi cache directory on exit");
-            }
-        }
-    }
-    
     private void setPropertyOS() throws OSNotSupportedException
     {
         String os = System.getProperty("os.name");
@@ -394,23 +343,17 @@ public class AppletLauncher
         }
     }
     
-    // throw JS callback not set exception
+    /* Client side javascript sink */
     private void setJsCallbackFn()
     {        
-        String cb = this.getParameter("callback");                
-        System.out.println();
-        System.out.println("Tried searching for parameter call back " + cb);
-        System.out.println();
-        if (cb != null)
-        {
-            if (cb.length() > 0)
-            {
-                System.setProperty("onsip.js.callback", cb);  
-                JS_FN_EXPORTED = cb;
-            }
+        String cb = this.getParameter("callback");                        
+        if (cb != null && cb.length() > 0)
+        {            
+            System.setProperty("onsip.js.callback", cb);            
+            JS_FN_EXPORTED = cb;            
         }        
     }
-    
+            
     public void main(String[] args) throws Exception
     {           
         /* Set the location of the felix properties file */
@@ -431,7 +374,10 @@ public class AppletLauncher
                                                         
         /* Copy framework properties from the system properties. */
         AppletLauncher.copySystemProperties(configProps);
-
+                
+        /* Check for updated jars */        
+        Updater.checkUpdates(configProps);
+                
         /*
          * If enabled, register a shutdown hook to make sure the framework is 
          * cleanly shutdown when the VM exits.
@@ -452,7 +398,7 @@ public class AppletLauncher
                                     "Shutdown called from AppletLauncher " + 
                                         new Date().toString());
                                 m_fwk.stop();
-                                m_fwk.waitForStop(0);                                
+                                m_fwk.waitForStop(0);                                 
                             } 
                         }
                         catch (Exception ex)
@@ -476,7 +422,7 @@ public class AppletLauncher
             /* Create an instance of the framework. */
             FrameworkFactory factory = getFrameworkFactory();
             m_fwk = factory.newFramework(configProps);
-
+            
             /* 15% Complete */
             m_loadEventSource.fireEvent(
                 new String[] 
@@ -502,7 +448,7 @@ public class AppletLauncher
             AutoProcessor.process(configProps, m_fwk.getBundleContext());
                                     
             m_fwk.getBundleContext().addServiceListener(this);
-          
+            
             /* 25% Complete */
             m_loadEventSource.fireEvent(
                 new String[] 
@@ -512,7 +458,8 @@ public class AppletLauncher
                         
             /* Start the framework. */            
             m_fwk.start();             
-              
+            
+                                       
             /* 90% Complete */
             m_loadEventSource.fireEvent(
                 new String[] 
@@ -521,16 +468,17 @@ public class AppletLauncher
                             "setup event handlers in activator", 
                                 PERC_SETUP_HANDLERS) });
             
-            initHandlers();                        
-            
+            m_logger.log(Level.INFO, "Init Handlers");
+            initHandlers();                    
+                           
             int delay = 500;
             ActionListener taskPerformer = new ActionListener() {
                 public void actionPerformed(ActionEvent evt) {                    
-                    /* 100% Complete */
+                    /* 100% Complete */                    
                     m_loadEventSource.fireEvent(
                         new String[] 
                            { getSerializedEvent(JS_EVT_LOADED, 
-                               "done", PERC_COMPLETE) });                    
+                               "done", PERC_COMPLETE) });
                 }
             };
             
@@ -538,8 +486,16 @@ public class AppletLauncher
             t.setRepeats(false);
             t.start();
             
+            /* 
+             * if this is a fresh install, we need to create the 
+             * cache.version file. We do it here because the
+             * assumption is that the felix cache folder
+             * exists at this point
+             */
+            Updater.setCacheVersion(configProps);
+            
             /* make sure no more loading events are sent to the client */
-            REGISTERED_COUNTER = EXPECTED_REGISTERED; 
+            REGISTERED_COUNTER = EXPECTED_REGISTERED;                                                 
         }
         catch (Exception ex)
         {
@@ -550,17 +506,14 @@ public class AppletLauncher
              * Felix seems to have problems recovering from half written
              * bundles.
              */
-            cleanFelixCacheDir();
-            /* 
-             * We can bail out of the virtual machine completely,
-             * but that's just kind of fugly from an end user experience.
-             * What we want to do is generate an error and pass it down
-             * to our javascript lib. 
-             */
+            m_logger.log(Level.SEVERE, 
+                "As a precaution remove the felix & jitsi cache store");
+            Updater.cleanFelixCacheDir();
+            
             //System.exit(0);
-        }
+        }        
     }
-    
+           
     /**
      * Simple method to parse META-INF/services file for framework factory.
      * Currently, it assumes the first non-commented line is the class name of
@@ -976,7 +929,8 @@ public class AppletLauncher
         String l = "Bundle " + bundle.getBundle().getLocation() + "; ";
         if (bundle.getBundle().getVersion() != null)
         {
-            l += "version: " + bundle.getBundle().getVersion().toString() + "; ";                         
+            l += "version: " + bundle.getBundle().getVersion().toString() + "; ";
+            l += "bundle id: " + bundle.getBundle().getBundleId() + "; ";
         }
         l += " is in state " + stateAlias;
         m_logger.log(Level.FINE, l);
