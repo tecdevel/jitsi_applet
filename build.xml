@@ -1,6 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************* -->
+<!-- Junction Networks 2011                            -->
+<!-- The Jitsi Applet Buildscript                      -->
+<!-- Details:                                          -->
+<!-- There are 3 layers that make up the Jitsi Applet  -->
+<!-- 1. The felix bundles that are the guts of jitsi   -->
+<!-- 2. The applet that houses the felix binaries, as  -->
+<!--    well as the acting interop layer that passes   -->
+<!--    data back and forth from client to the         -->
+<!--    jitsi bundles.                                 -->
+<!-- 3. The javascript layer that UI clients would use -->
+<!--    to interface with jitsi.                       -->
+
+<!-- This build script generates the applet.           -->
+<!-- ************************************************* -->
+
 <project name="dialer-applet" default="all" basedir=".">
   <description>
-    build onsip dialer applet
+    builds the onsip dialer applet
   </description>
 
   <property name="deploy.jar" value="GraphicalUAApp.jar" />
@@ -11,14 +28,16 @@
   <!-- ###################################     -->
   <!-- ___________ MODIFY THIS __________      -->
   <!-- ###################################     -->
-  <property name='applet.web.dest.dir' location="* applet's web folder *" />
+  <property name='applet.web.dest.dir'
+            location="../jn_sip_applet/www" />
 
   <!-- The jitsi_js directory on this          -->
   <!-- build machine                           -->
   <!-- ###################################     -->
   <!-- ___________ MODIFY THIS __________      -->
   <!-- ###################################     -->
-  <property name="jitsi.js.dir" location="* jitsi js project *" />
+  <property name="jitsi.js.dir"
+            location="../jitsi_js/" />
 
   <!-- The 'jitsi.baseurl' property will       -->
   <!-- be used alongside the 'jitsi.js.dir'    -->
@@ -32,7 +51,8 @@
   <!-- ################################### -->
   <!-- ___________ MODIFY THIS __________  -->
   <!-- ################################### -->
-  <property name="jitsi.baseurl" value="* base url of the applet *" />
+  <property name="jitsi.baseurl"
+            value="http://192.168.1.34/~oren/applet" />
 
   <!-- Java Cache Directory, used with the 'clean-cache' target -->
   <property name='deployment.user.cachedir'
@@ -78,6 +98,16 @@
     <echo message="     this build script will be copied to this location."/>
     <echo message="     This location is the web folder from which "/>
     <echo message="     the browser will download the applet from "/>
+    <echo message="----------------------------------------------------------"/>
+    <echo message="| property {jitsi.baseurl} -> ${jitsi.baseurl}" />
+    <echo message="---> This is the base url that will be used in generating" />
+    <echo message="     the 'codebase' property of the embed tag in 'jitsi.js'" />
+    <echo message="     In order to insure that new copies of the applet " />
+    <echo message="     are downloaded by the browser, rather than any cached "/>
+    <echo message="     copy of our archive, we create a new folder named  "/>
+    <echo message="     by taking the checksum of the generate applet jar. We then "/>
+    <echo message="     drop our jar into that folder and write the codebase " />
+    <echo message="     of the applet into 'archive.js' which builds into 'jitsi.js' "/>
     <echo message="----------------------------------------------------------"/>
     <echo message="| property {jitsi.js.dir} -> ${jitsi.js.dir}" />
     <echo message="---> This is the client side javascript interface lib to" />
@@ -129,6 +159,7 @@
     <echo message=""/>
   </target>
 
+  <!-- Flag's a property if the jitsi js directory exists -->
   <target name="jitsi-js-dir-check">
     <condition property="jitsi.js.dir.set">
       <and>
@@ -148,17 +179,22 @@
     </javac>
   </target>
 
+  <!-- Remove folders created in the build process -->
   <target name="clean" description="clean up the project">
     <antcall target="delete-felix-dir" />
     <antcall target="delete-applet-jar" />
     <antcall target="delete-build-dir" />
   </target>
 
+  <!-- Writes the new codebase to the archive.js file in the jitsi js    -->
+  <!-- project. The it rebuilds jitsi.js. If this is not added, nothing  -->
+  <!-- catastrophic will happen. It just makes development a bit easier  -->
   <target name="make-jitsi-js-with-codebase" if="${jitsi.js.dir.set}"
           depends="jitsi-js-dir-check, jitsi-js-dir-notset">
     <echo file="${jitsi.js.dir}/src/archive.js"
       message="Jitsi.Archive = Jitsi.Base.extend({codebase:'${jitsi.baseurl}/releases/${deploy.jar.checksum}'});" />
 
+    <!-- run make from inside the jitsi_js project -->
     <exec executable="make" dir="${jitsi.js.dir}">
       <arg value="src"/>
     </exec>
@@ -168,8 +204,10 @@
   <target name="copy-applet" description="deploy applet" if="applet.dir.copy">
     <checksum file="${release.dir}/${deploy.jar}"
               property="deploy.jar.checksum" algorithm="SHA"/>
-    <echo message="# Generated checksum for jar -> ${deploy.jar.checksum}" />
-    <echo message="# Try copying jar package ${deploy.jar} to ${applet.web.dest.dir}" />
+    <echo
+        message="# Generated checksum for jar -> ${deploy.jar.checksum}" />
+    <echo
+        message="# Try copying jar package ${deploy.jar} to ${applet.web.dest.dir}" />
     <mkdir dir="${applet.web.dest.dir}/releases/${deploy.jar.checksum}" />
     <copy file="${release.dir}/${deploy.jar}"
           todir="${applet.web.dest.dir}/releases/${deploy.jar.checksum}"
@@ -177,17 +215,20 @@
     <antcall target="make-jitsi-js-with-codebase" />
   </target>
 
+  <!-- delete the un-packed felix folder -->
   <target name="delete-felix-dir" description="delete the un-archived felix dir">
     <echo
         message="# Search for existing ${lib.dir}/felix, delete if it exists" />
     <delete failonerror="false" includeemptydirs="true" dir="${lib.dir}/felix"/>
   </target>
 
+  <!-- delete the applet if it exists in the release folder -->
   <target name="delete-applet-jar" description="delete the archive">
     <echo message="# Search for existing ${deploy.jar}, delete if it exists" />
     <delete failonerror="false" includeemptydirs="true" dir="${release.dir}" />
   </target>
 
+  <!-- delete the build folder -->
   <target name="delete-build-dir" description="delete the build folder">
     <echo message="# Delete build dir ${build.dir}" />
     <delete failonerror="false" includeemptydirs="true" dir="${build.dir}" />
@@ -207,8 +248,10 @@
     <unzip src="${lib.dir}/felix.jar" dest="${lib.dir}/felix/" />
 
     <!-- copy the felix properties file to the felix archive -->
-    <echo message="# Copy ${conf.dir}/felix.onsip.properties ---> ${lib.dir}/felix"/>
-    <copy file="${conf.dir}/felix.onsip.properties" todir="${lib.dir}/felix/META-INF" />
+    <echo
+        message="# Copy ${conf.dir}/felix.onsip.properties ---> ${lib.dir}/felix"/>
+    <copy file="${conf.dir}/felix.onsip.properties"
+          todir="${lib.dir}/felix/META-INF" />
 
     <!-- package the applet with the felix archive -->
     <echo message="# Create new jar package ${deploy.jar}" />
