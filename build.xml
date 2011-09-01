@@ -48,9 +48,9 @@
   <!-- of 'jitsi.js.dir', and 'make' is then   -->
   <!-- executed to build the javascript lib    -->
   <!-- with the codebase embedded              -->
-  <!-- ################################### -->
-  <!-- ___________ MODIFY THIS __________  -->
-  <!-- ################################### -->
+  <!-- ###################################     -->
+  <!-- ___________ MODIFY THIS __________      -->
+  <!-- ###################################     -->
   <property name="jitsi.baseurl"
             value="http://192.168.1.34/~oren/applet" />
 
@@ -266,10 +266,14 @@
     <!-- delete felix dir if it exists -->
     <antcall target="delete-felix-dir" />
 
-    <echo message=""/>
-    <echo message=""/>
-    <echo message="##############################################################"/>
-    <echo message="# You may want to run 'ant clean-cache' if this is a dev box" />
-    <echo message="##############################################################"/>
+    <echo message="####################################################################"/>
+    <echo message="# IMPORTANT: "/>
+    <echo message="# ========== "/>
+    <echo message="# | Make sure to run 'ant -f build-jn.xml rebuild' in the Jitsi"/>
+    <echo message="# ->  project if you've updated property ---> {onsip.cache.version} "/>
+    <echo message="# | "/>
+    <echo message="# | "/>
+    <echo message="# -> You may want to run 'ant clean-cache' if this is a dev box" />
+    <echo message="#####################################################################"/>
   </target>
 </project>
