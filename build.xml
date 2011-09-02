@@ -269,7 +269,7 @@
     <echo message="####################################################################"/>
     <echo message="# IMPORTANT: "/>
     <echo message="# ========== "/>
-    <echo message="# | Make sure to run 'ant -f build-jn.xml rebuild' in the Jitsi"/>
+    <echo message="# | Make sure to run 'ant rebuild' in the Jitsi"/>
     <echo message="# ->  project if you've updated property ---> {onsip.cache.version} "/>
     <echo message="# | "/>
     <echo message="# | "/>
