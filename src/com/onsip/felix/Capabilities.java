@@ -9,35 +9,43 @@ public class Capabilities
     private final static java.util.logging.Logger m_logger = 
         java.util.logging.Logger.getLogger(Capabilities.class.getName());
     
-    private static String getOS() 
+    private synchronized static void setPropertyOS()
         throws UnsupportedPlatformException
     {
-        String os = System.getProperty("os.name");                
-        if (os.startsWith("Windows"))
+        String os = System.getProperty("os.name");
+        os = os.toLowerCase();
+        if (os.indexOf("mac os x") != -1)
         {
-            return "win32";
+            /* mac */
+            System.setProperty("onsip.os", "macosx");
         }
-        else if (os.startsWith("Mac"))
+        else if (os.indexOf("windows") != -1)
         {
-            return "mac";
+            /* windows */
+            System.setProperty("onsip.os", "windows");
         }
-        /**
-        else if (os.equals("SunOS"))
+        else if (os.indexOf("linux") != -1)
         {
-            return "solaris";
+            /* linux */
+            System.setProperty("onsip.os", "linux");
         }
-        else if (os.equals("Linux"))
+        else if (os.indexOf("sunos") != -1)
         {
-            return "linux";
+            /* solaris */
+            System.setProperty("onsip.os", "solaris");
         }
-        **/
+        else if (os.indexOf("freebsd") != -1)
+        {
+            /* FreeBSD */
+            System.setProperty("onsip.os", "freebsd");
+        }
         else
         {
-            throw new UnsupportedPlatformException(
-                "Operating system " + os + " not yet supported");
+            throw new UnsupportedPlatformException("OS " + os
+                + " not currently supported");
         }
     }
-       
+           
     /* Returns "sparc" if on SPARC, "x86" if on x86. */
     private static String getCPU() 
         throws UnsupportedPlatformException
@@ -83,19 +91,20 @@ public class Capabilities
     {
         try
         {
-            String os = getOS();
+            setPropertyOS();
+            String os = System.getProperty("onsip.os");
             String cpu = getCPU();
             boolean supported = false;
             
             if (cpu.equals("x86") || cpu.equals("amd64"))
             {
                 String v = System.getProperty("os.version");
-                if (os.equals("mac"))
+                if (os.equals("macosx"))
                 {
                     supported = ((v.compareTo("10.6") >= 0) && 
                         isJavaVersionSupported());                                    
                 }
-                else if(os.equals("win32"))
+                else if(os.equals("windows"))
                 {
                     supported = ((v.compareTo("5.1") >= 0) && 
                         isJavaVersionSupported());

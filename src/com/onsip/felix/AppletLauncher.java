@@ -318,42 +318,7 @@ public class AppletLauncher
         }        
     }
           
-    private void setPropertyOS() throws UnsupportedPlatformException
-    {
-        String os = System.getProperty("os.name");
-        os = os.toLowerCase();
-        if (os.indexOf("mac os x") != -1)
-        {
-            /* mac */
-            System.setProperty("onsip.os", "macosx");
-        }
-        else if (os.indexOf("windows") != -1)
-        {
-            /* windows */
-            System.setProperty("onsip.os", "windows");
-        }
-        else if (os.indexOf("linux") != -1)
-        {
-            /* linux */
-            System.setProperty("onsip.os", "linux");
-        }
-        else if (os.indexOf("sunos") != -1)
-        {
-            /* solaris */
-            System.setProperty("onsip.os", "solaris");
-        }
-        else if (os.indexOf("freebsd") != -1)
-        {
-            /* FreeBSD */
-            System.setProperty("onsip.os", "freebsd");
-        }
-        else
-        {
-            throw new UnsupportedPlatformException("OS " + os
-                + " not currently supported");
-        }
-    }
-    
+     
     public void initFramework(String[] args) throws Exception
     {           
         /* Set the location of the felix properties file */
@@ -365,10 +330,7 @@ public class AppletLauncher
         
         /* Check if this platform can run the applet */ 
         Capabilities.isPlatformSupported();
-
-        /* Used alongside OSGI */
-        setPropertyOS();
-        
+                
         /* Load system properties. */
         AppletLauncher.loadSystemProperties();
 
