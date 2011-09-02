@@ -29,7 +29,7 @@
   <!-- ___________ MODIFY THIS __________      -->
   <!-- ###################################     -->
   <property name='applet.web.dest.dir'
-            location="../jn_sip_applet/www" />
+            location="${user.home}/public_html" />
 
   <!-- The jitsi_js directory on this          -->
   <!-- build machine                           -->
