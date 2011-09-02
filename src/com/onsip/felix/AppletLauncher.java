@@ -18,15 +18,12 @@ import java.util.logging.Level;
 
 import org.apache.felix.framework.util.Util;
 import org.apache.felix.main.AutoProcessor;
-import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
-import org.osgi.framework.BundleException;
 import org.osgi.framework.BundleListener;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
-import org.osgi.framework.Version;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
 
@@ -34,6 +31,7 @@ import sun.net.ProgressEvent;
 import sun.net.ProgressListener;
 import sun.net.ProgressSource;
 
+import com.onsip.felix.exceptions.UnsupportedPlatformException;
 import com.onsip.felix.handlers.CallHandler;
 import com.onsip.felix.handlers.CallPeerHandler;
 import com.onsip.felix.handlers.LoadHandler;
@@ -191,19 +189,22 @@ public class AppletLauncher
                    { this.getSerializedEvent
                         (JS_EVT_UNLOADED, "init applet", 0) });
                                     
-            m_logger.log(Level.INFO, "");            
+            m_logger.log(Level.INFO, "**************** Environment *************");            
             m_logger.log(Level.INFO, "OS name: " + 
                 System.getProperty("os.name"));
             m_logger.log(Level.INFO, "OS architecture: " + 
                 System.getProperty("os.arch"));
             m_logger.log(Level.INFO, "OS version: " + 
                 System.getProperty("os.version"));
+            m_logger.log(Level.INFO, "Java version: " + 
+                System.getProperty("java.version"));
             m_logger.log(Level.INFO, "tmpdir: " + 
                 System.getProperty("java.io.tmpdir"));
             m_logger.log(Level.INFO, "deployment cache dir: " + 
                 System.getProperty("deployment.user.cachedir"));
             m_logger.log(Level.INFO, "system cache dir: " + 
                 System.getProperty("deployment.system.cachedir"));
+            m_logger.log(Level.INFO, "**************** ********** *************");
                         
             Object a2m = 
                 Class.forName("sun.plugin2.applet.Applet2ClassLoader");
@@ -220,7 +221,7 @@ public class AppletLauncher
             /* Monitor the progress of bundle downloads */ 
             setupDownloadMonitoring();
             
-            main(new String[] {});                        
+            initFramework(new String[] {});                        
         }
         catch (Exception e)
         {            
@@ -305,9 +306,19 @@ public class AppletLauncher
         /* This error should never be thrown */
         throw new Exception("Felix Cache Directory not set in applet");        
     }
-
-        
-    private void setPropertyOS() throws OSNotSupportedException
+                
+    /* Client side javascript sink */
+    private void setJsCallbackFn()
+    {        
+        String cb = this.getParameter("callback");                        
+        if (cb != null && cb.length() > 0)
+        {            
+            System.setProperty("onsip.js.callback", cb);            
+            JS_FN_EXPORTED = cb;            
+        }        
+    }
+          
+    private void setPropertyOS() throws UnsupportedPlatformException
     {
         String os = System.getProperty("os.name");
         os = os.toLowerCase();
@@ -338,23 +349,12 @@ public class AppletLauncher
         }
         else
         {
-            throw new OSNotSupportedException("OS " + os
+            throw new UnsupportedPlatformException("OS " + os
                 + " not currently supported");
         }
     }
     
-    /* Client side javascript sink */
-    private void setJsCallbackFn()
-    {        
-        String cb = this.getParameter("callback");                        
-        if (cb != null && cb.length() > 0)
-        {            
-            System.setProperty("onsip.js.callback", cb);            
-            JS_FN_EXPORTED = cb;            
-        }        
-    }
-            
-    public void main(String[] args) throws Exception
+    public void initFramework(String[] args) throws Exception
     {           
         /* Set the location of the felix properties file */
         System
@@ -363,9 +363,12 @@ public class AppletLauncher
         /* Set the javascript callback function */
         setJsCallbackFn();
         
-        /* Set OS property, used in the OSGI properties file */ 
-        setPropertyOS();
+        /* Check if this platform can run the applet */ 
+        Capabilities.isPlatformSupported();
 
+        /* Used alongside OSGI */
+        setPropertyOS();
+        
         /* Load system properties. */
         AppletLauncher.loadSystemProperties();
 
