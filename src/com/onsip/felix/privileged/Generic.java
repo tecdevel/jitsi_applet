@@ -1,9 +1,7 @@
 package com.onsip.felix.privileged;
 
 import java.lang.reflect.Method;
-
 import java.security.PrivilegedAction;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,9 +11,7 @@ import com.onsip.felix.AppletLauncher;
 import com.onsip.felix.exceptions.NoSuchApiFunction;
 import com.onsip.felix.exceptions.ParamsDoNotMatchException;
 
-/**
- * OnSIP's Generic interface into the Jitsi applet 
- *  
+/** 
  * @author Junction Networks
  */
 public class Generic

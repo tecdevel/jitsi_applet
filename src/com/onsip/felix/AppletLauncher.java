@@ -31,6 +31,7 @@ import sun.net.ProgressEvent;
 import sun.net.ProgressListener;
 import sun.net.ProgressSource;
 
+import com.onsip.felix.exceptions.NoDeviceFoundException;
 import com.onsip.felix.exceptions.UnsupportedPlatformException;
 import com.onsip.felix.handlers.CallHandler;
 import com.onsip.felix.handlers.CallPeerHandler;
@@ -460,7 +461,14 @@ public class AppletLauncher
             Updater.setCacheVersion(configProps);
             
             /* make sure no more loading events are sent to the client */
-            REGISTERED_COUNTER = EXPECTED_REGISTERED;                                                 
+            REGISTERED_COUNTER = EXPECTED_REGISTERED;          
+            
+            /* Check the availability of input devices */
+            Capabilities.getDefaultMicrophone();            
+        }
+        catch (NoDeviceFoundException ndfe)
+        {
+            m_logger.log(Level.WARNING, "Could not find input device ", ndfe);
         }
         catch (Exception ex)
         {

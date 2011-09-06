@@ -1,13 +1,28 @@
 package com.onsip.felix;
 
+import java.security.AccessController;
 import java.util.logging.Level;
 
+import com.onsip.felix.exceptions.NoDeviceFoundException;
 import com.onsip.felix.exceptions.UnsupportedPlatformException;
+import com.onsip.felix.privileged.DefaultAudioDevice;
 
 public class Capabilities
 {
     private final static java.util.logging.Logger m_logger = 
         java.util.logging.Logger.getLogger(Capabilities.class.getName());
+    
+    private static String microphone = null;
+    public synchronized static String getDefaultMicrophone()
+    {
+        microphone =  AccessController.doPrivileged(new DefaultAudioDevice());
+        if (microphone == null && microphone.length() == 0)
+        {
+            throw new NoDeviceFoundException("No microphone found");
+        }
+        m_logger.info("Audio input device --> " + microphone);
+        return microphone;
+    }
     
     private synchronized static void setPropertyOS()
         throws UnsupportedPlatformException
@@ -101,7 +116,7 @@ public class Capabilities
                 String v = System.getProperty("os.version");
                 if (os.equals("macosx"))
                 {
-                    supported = ((v.compareTo("10.6") >= 0) && 
+                    supported = ((v.compareTo("10.5") >= 0) && 
                         isJavaVersionSupported());                                    
                 }
                 else if(os.equals("windows"))
