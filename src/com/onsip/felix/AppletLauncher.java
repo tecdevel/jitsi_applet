@@ -32,7 +32,6 @@ import sun.net.ProgressListener;
 import sun.net.ProgressSource;
 
 import com.onsip.felix.exceptions.NoDeviceFoundException;
-import com.onsip.felix.exceptions.UnsupportedPlatformException;
 import com.onsip.felix.handlers.CallHandler;
 import com.onsip.felix.handlers.CallPeerHandler;
 import com.onsip.felix.handlers.LoadHandler;
@@ -481,7 +480,7 @@ public class AppletLauncher
              */
             m_logger.log(Level.SEVERE, 
                 "As a precaution remove the felix & jitsi cache store");
-            Updater.cleanFelixCacheDir();
+            // Updater.cleanFelixCacheDir();
             
             //System.exit(0);
         }        
