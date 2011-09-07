@@ -11,7 +11,7 @@ public class Hold
     implements PrivilegedAction<Object>
 {
     private final static Logger m_logger = 
-        Logger.getLogger(Mute.class.getName());
+        Logger.getLogger(Hold.class.getName());
     
     private boolean hold;
 
