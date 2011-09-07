@@ -23,7 +23,7 @@ public class Generic
     public enum Exported_API
     {
         REGISTER, UNREGISTER, 
-        CALL_CREATE, CALL_TERMINATE, CALL_REQUESTED,
+        CALL_CREATE, CALL_TERMINATE, CALL_REQUESTED, INVITE, TRANSFER_CALL,
         SEND_TONE, MUTE, HOLD, DEFAULT_AUDIO_DEVICE, VOLUME; 
     }
 
@@ -171,6 +171,12 @@ public class Generic
                 {
                     m = Hold.getMethodForCallIdAndPeerId(service);
                 }
+                break;
+            case TRANSFER_CALL:
+                m = Transfer.getMethod(service);
+                break;
+            case INVITE:
+                m = Invite.getMethod(service);
                 break;
             case DEFAULT_AUDIO_DEVICE:
                 m = DefaultAudioDevice.getMethod(service);
