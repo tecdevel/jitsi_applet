@@ -99,7 +99,14 @@ public class Generic
         switch (Exported_API.valueOf(fn))
         {
             case REGISTER:
-                m = Register.getMethod(service);
+                if (this.args.length == 4)
+                {
+                    m = Register.getMethod(service);
+                }
+                else if (this.args.length == 7)
+                {
+                    m = Register.getMethodWithServer(service);
+                }
                 break;
             case UNREGISTER:
                 m = Unregister.getMethod(service);

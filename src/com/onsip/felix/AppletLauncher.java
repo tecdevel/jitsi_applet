@@ -61,6 +61,8 @@ public class AppletLauncher
     private final static java.util.logging.Logger m_logger = 
         java.util.logging.Logger.getLogger(AppletLauncher.class.getName());
  
+    private static final String ACCOUNT_PREFIX = "com.onsip.accounts";
+    
     private final static String JS_EVT_LOADING = "loading";
     private final static String JS_EVT_LOADED = "loaded";
     private final static String JS_EVT_UNLOADED = "unloaded";
@@ -317,7 +319,42 @@ public class AppletLauncher
             JS_FN_EXPORTED = cb;            
         }        
     }
-          
+         
+    private synchronized void setProxyFromParams()
+    {
+        String serverAddress = this.getParameter("server_address");
+        String proxyAddress = this.getParameter("proxy_address");
+        String proxyPort = this.getParameter("proxy_port");
+        
+        if (serverAddress != null)
+        {
+            serverAddress = serverAddress.trim();
+            if (serverAddress.length() > 0)
+            {
+                System.setProperty(ACCOUNT_PREFIX + 
+                    "SERVER_ADDRESS", serverAddress);
+            }
+        }
+        if (proxyAddress != null)
+        {
+            proxyAddress = proxyAddress.trim();
+            if (proxyAddress.length() > 0)
+            {
+                System.setProperty(ACCOUNT_PREFIX + 
+                    "PROXY_ADDRESS", proxyAddress);
+            }
+        }
+        
+        if (proxyPort != null)
+        {
+            proxyPort = proxyPort.trim();
+            if (proxyPort.length() > 0)
+            {
+                System.setProperty(ACCOUNT_PREFIX + 
+                    "PROXY_PORT", proxyPort);
+            }
+        }                
+    }
      
     public void initFramework(String[] args) throws Exception
     {           
@@ -327,6 +364,9 @@ public class AppletLauncher
 
         /* Set the javascript callback function */
         setJsCallbackFn();
+        
+        /* Proxy details passed through embed parameters */
+        setProxyFromParams();
         
         /* Check if this platform can run the applet */ 
         Capabilities.isPlatformSupported();
@@ -478,8 +518,8 @@ public class AppletLauncher
              * Felix seems to have problems recovering from half written
              * bundles.
              */
-            m_logger.log(Level.SEVERE, 
-                "As a precaution remove the felix & jitsi cache store");
+            // m_logger.log(Level.SEVERE, 
+            //    "As a precaution remove the felix & jitsi cache store");
             // Updater.cleanFelixCacheDir();
             
             //System.exit(0);
