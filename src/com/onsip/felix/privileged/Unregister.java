@@ -12,6 +12,13 @@ public class Unregister
     private final static java.util.logging.Logger m_logger = 
         java.util.logging.Logger.getLogger(Unregister.class.getName());
     
+    private String userId;
+    
+    public Unregister(String userId)
+    {        
+        this.userId = userId;
+    }
+    
     @Override
     public String run()
     {
@@ -20,7 +27,7 @@ public class Unregister
             Object service = AppletLauncher.getService();
                                                                                                     
             Method m = getMethod(service);
-            m.invoke(service, new Object[0]);                    
+            m.invoke(service, new Object[] {this.userId});                    
         }
         catch (Exception e)
         {
@@ -34,8 +41,8 @@ public class Unregister
     {                
         Class<? extends Object> clazz =
             service.getClass();
-        
-        Method m = clazz.getMethod("unregister", new Class[0]);
+                        
+        Method m = clazz.getMethod("unregister", new Class[] {String.class});
                 
         return m;
     }

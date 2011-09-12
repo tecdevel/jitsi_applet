@@ -14,10 +14,12 @@ public class Call
         java.util.logging.Logger.getLogger(Call.class.getName());
     
     private String sip;
-
-    public Call(String sip)
+    private String userId;
+    
+    public Call(String userId, String sip)
     {
         this.sip = sip;
+        this.userId = userId;
     }
    
     @Override
@@ -28,7 +30,7 @@ public class Call
             Object service = AppletLauncher.getService();
                         
             Method call = getMethod(service); 
-            call.invoke(service, new Object[] {this.sip});
+            call.invoke(service, new Object[] {this.userId, this.sip});
         }        
         catch (Exception e)
         {
@@ -42,7 +44,8 @@ public class Call
     {                
         Class<? extends Object> clazz = service.getClass();
         
-        Method m = clazz.getMethod("call", new Class[] {String.class});
+        Method m = clazz.getMethod("call", 
+            new Class[] {String.class, String.class});
         return m;
     }
     
@@ -52,7 +55,7 @@ public class Call
         Class<? extends Object> clazz = service.getClass();
     
         Method m = clazz.getMethod("call", 
-            new Class[] {String.class, String.class});
+            new Class[] {String.class, String.class, String.class});
         return m;
     }
 }

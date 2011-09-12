@@ -10,6 +10,13 @@ public class Terminate implements PrivilegedAction<Object>
 {
     private final static java.util.logging.Logger m_logger = 
         java.util.logging.Logger.getLogger(Terminate.class.getName());
+        
+    private String callId;
+    
+    public Terminate(String callId)
+    {        
+        this.callId = callId;
+    }
     
     @Override
     public String run()
@@ -18,9 +25,9 @@ public class Terminate implements PrivilegedAction<Object>
         {            
             Object service = AppletLauncher.getService();
             
-            Method call = getMethod(service); 
+            Method call = getMethodForCallId(service); 
             
-            call.invoke(service, new Object[0]);
+            call.invoke(service, new Object[] {this.callId});
         }        
         catch (Exception e)
         {
@@ -28,18 +35,7 @@ public class Terminate implements PrivilegedAction<Object>
         }
         return null;
     }
-    
-    public static Method getMethod(Object service) 
-        throws SecurityException, NoSuchMethodException        
-    {                
-        Class<? extends Object> clazz =
-            service.getClass();
-        
-        Method m = clazz.getMethod("hangUp", new Class[0]);
             
-        return m;
-    }
-    
     public static Method getMethodForCallId(Object service) 
         throws SecurityException, NoSuchMethodException        
     {                

@@ -112,7 +112,7 @@ public class Generic
                 m = Unregister.getMethod(service);
                 break;
             case CALL_CREATE:                
-                if (this.args.length == 1)
+                if (this.args.length == 2)
                 {
                     m = Call.getMethod(service);
                 }
@@ -122,11 +122,7 @@ public class Generic
                 }                
                 break;
             case CALL_TERMINATE:
-                if (this.args.length == 0)
-                {
-                    m = Terminate.getMethod(service);
-                }
-                else if(this.args.length == 1)
+                if(this.args.length == 1)
                 {
                     m = Terminate.getMethodForCallId(service);
                 }   
