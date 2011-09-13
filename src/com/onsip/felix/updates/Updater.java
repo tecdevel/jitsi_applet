@@ -135,13 +135,22 @@ public class Updater
                 }
             }
         }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: readCacheVersion : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+        }
         finally
         {
             if (br != null) br.close();
             if (is != null) is.close();
         }
-        m_logger.log(Level.INFO, "Local Cache.Version " + v);
-        return v.trim();
+        if (v != null)
+        {
+            m_logger.log(Level.INFO, "Local Cache.Version " + v);
+            return v.trim();
+        }
+        return "";
     }
     
     /*
@@ -164,6 +173,13 @@ public class Updater
                 bw = new BufferedWriter(new OutputStreamWriter(os));
                 bw.write(cacheVersion, 0, cacheVersion.length());
             }
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: setCacheVersion(String) : ");
+            m_logger.log(Level.SEVERE, 
+                "Could not create cache.version file, details " + 
+                    e.getMessage(), e);
         }
         finally
         {
@@ -194,8 +210,11 @@ public class Updater
         }
         catch (Exception e)
         {
-            m_logger.log(Level.WARNING, 
-                "Could not create cache.version file, details " + e);
+            m_logger.log(Level.SEVERE,
+                "Exception :: setCacheVersion(Properties) : ");
+            m_logger.log(Level.SEVERE, 
+                "Could not create cache.version file, details " + 
+                    e.getMessage(), e);
         }
     }
     private static boolean delete(File directory) 
@@ -220,148 +239,187 @@ public class Updater
     
     public static void trash()
     {
-        FilenameFilter filter = new FilenameFilter() {
-            public boolean accept(File dir, String name) {
-                return (name.startsWith("$") &&
-                    name.endsWith("$"));
-            }
-        };
-        
-        File felixDir = getFelixDir();
-        if (felixDir.exists())
+        try
         {
-            /* delete the unused bundles e.g $<bundle>$ */
-            File[] files = felixDir.listFiles(filter);
-            for (int i=0; i < files.length; i++)
+            FilenameFilter filter = new FilenameFilter() {
+                public boolean accept(File dir, String name) {
+                    return (name.startsWith("$") &&
+                        name.endsWith("$"));
+                }
+            };
+            
+            File felixDir = getFelixDir();
+            if (felixDir.exists())
             {
-                m_logger.log(Level.FINE, "REMOVING " + 
-                    files[i].getAbsolutePath());
-                delete(files[i]);            
-            }
-                    
-            File felixCacheBak = 
-                new File(felixDir.getParent() + 
-                    SEPARATOR + "$" + FELIX_CACHE_STORE + "$");        
+                /* delete the unused bundles e.g $<bundle>$ */
+                File[] files = felixDir.listFiles(filter);
+                for (int i=0; i < files.length; i++)
+                {
+                    m_logger.log(Level.FINE, "REMOVING " + 
+                        files[i].getAbsolutePath());
+                    delete(files[i]);            
+                }
                         
-            /* delete unused felix cache store */
-            if (felixCacheBak.exists())
-            {
-                m_logger.log(Level.FINE, "REMOVING - " + 
-                    felixCacheBak.getAbsolutePath());
-                delete(felixCacheBak);
+                File felixCacheBak = 
+                    new File(felixDir.getParent() + 
+                        SEPARATOR + "$" + FELIX_CACHE_STORE + "$");        
+                            
+                /* delete unused felix cache store */
+                if (felixCacheBak.exists())
+                {
+                    m_logger.log(Level.FINE, "REMOVING - " + 
+                        felixCacheBak.getAbsolutePath());
+                    delete(felixCacheBak);
+                }
+                
+                /* delete unused jitsi cache store */
+                File jitsiCacheBak = 
+                    new File(felixDir.getParent() + 
+                        SEPARATOR + "$" + JITSI_CACHE_STORE + "$");
+                
+                if (jitsiCacheBak.exists())
+                {
+                    m_logger.log(Level.FINE, "REMOVING - " + 
+                        jitsiCacheBak.getAbsolutePath());
+                    delete(jitsiCacheBak);
+                }
             }
-            
-            /* delete unused jitsi cache store */
-            File jitsiCacheBak = 
-                new File(felixDir.getParent() + 
-                    SEPARATOR + "$" + JITSI_CACHE_STORE + "$");
-            
-            if (jitsiCacheBak.exists())
-            {
-                m_logger.log(Level.FINE, "REMOVING - " + 
-                    jitsiCacheBak.getAbsolutePath());
-                delete(jitsiCacheBak);
-            }
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: trash : ");
+            m_logger.log(Level.SEVERE, 
+                "Error while trashing felix bundle, details " + 
+                    e.getMessage(), e);
         }
     }
     
     public static void cleanFelixCacheDir() 
     {
-        m_logger.log(Level.FINE, "Clean up felix / jitsi storage");
-        String dir = System.getProperty("deployment.user.cachedir");
-        if (dir == null) {
-            dir = System.getProperty("user.home");
-        }        
-        m_logger.log(Level.FINE, "Using felix cache dir - " + dir);
-        File fFelixCache = new File(dir + SEPARATOR + FELIX_CACHE_STORE);
-        
-        /* first, we try to delete the felix cache */
         try
         {
-            if (fFelixCache.exists() && fFelixCache.isDirectory()) 
+            m_logger.log(Level.FINE, "Clean up felix / jitsi storage");
+            String dir = System.getProperty("deployment.user.cachedir");
+            if (dir == null) {
+                dir = System.getProperty("user.home");
+            }        
+            m_logger.log(Level.FINE, "Using felix cache dir - " + dir);
+            File fFelixCache = new File(dir + SEPARATOR + FELIX_CACHE_STORE);
+            
+            /* first, we try to delete the felix cache */
+            try
             {
-                String fileName = fFelixCache.getName();
-                File rename = 
-                    new File(fFelixCache.getParent() + 
-                        SEPARATOR + "$" + fileName + "$");
-                fFelixCache.renameTo(rename);
+                if (fFelixCache.exists() && fFelixCache.isDirectory()) 
+                {
+                    String fileName = fFelixCache.getName();
+                    File rename = 
+                        new File(fFelixCache.getParent() + 
+                            SEPARATOR + "$" + fileName + "$");
+                    fFelixCache.renameTo(rename);
+                }
+            }
+            catch(Exception e)
+            {
+                m_logger.log(Level.SEVERE, "Exception :: cleanFelixCacheDir : ");
+                m_logger.log(Level.SEVERE, 
+                    "Error while deleting felix cache directory, " + 
+                        "try deleting on exit, details " + e.getMessage(), e);            
+            }
+            
+            /* second, we try to rename the sip communicator cache */
+            File fSipCommunicator = new File(dir + SEPARATOR + JITSI_CACHE_STORE);       
+            try
+            {
+                if (fSipCommunicator.exists() && fSipCommunicator.isDirectory()) 
+                {
+                    String fileName = fSipCommunicator.getName();
+                    File rename = 
+                        new File(fFelixCache.getParent() + 
+                            SEPARATOR + "$" + fileName + "$");
+                    fSipCommunicator.renameTo(rename);
+                }
+            }
+            catch(Exception e)
+            {
+                m_logger.log(Level.SEVERE, "Exception :: cleanFelixCacheDir : ");
+                m_logger.log(Level.SEVERE, 
+                    "Error while deleting jitsi cache directory, " + 
+                        "try deleting on exit, details " + e.getMessage(), e);            
             }
         }
         catch(Exception e)
         {
+            m_logger.log(Level.SEVERE, "Exception :: cleanFelixCacheDir : ");
             m_logger.log(Level.SEVERE, 
-                "Error while deleting felix cache directory, " + 
-                    "try deleting on exit");            
-        }
-        
-        /* second, we try to rename the sip communicator cache */
-        File fSipCommunicator = new File(dir + SEPARATOR + JITSI_CACHE_STORE);       
-        try
-        {
-            if (fSipCommunicator.exists() && fSipCommunicator.isDirectory()) 
-            {
-                String fileName = fSipCommunicator.getName();
-                File rename = 
-                    new File(fFelixCache.getParent() + 
-                        SEPARATOR + "$" + fileName + "$");
-                fSipCommunicator.renameTo(rename);
-            }
-        }
-        catch(Exception e)
-        {
-            m_logger.log(Level.SEVERE, 
-                "Error while deleting jitsi cache directory, " + 
-                    "try deleting on exit");            
+                "Error while deleting cache directories, " + 
+                    "details " + e.getMessage(), e);            
         }
     }
     
     private static String[] getJarsFromConfig(Properties config)
     {
-        int MAX_JARS = 100;        
-        String [] jarList = new String[MAX_JARS];
-        int mark = 0;
-        for (int i=0; i < MAX_JARS; i++)
+        try
         {
-            String list = config.getProperty("felix.auto.start." + i);
-            if (list != null && list.length() > 0)
+            int MAX_JARS = 100;        
+            String [] jarList = new String[MAX_JARS];
+            int mark = 0;
+            for (int i=0; i < MAX_JARS; i++)
             {
-                String [] jars = list.split("\\s+");
-                for (int j=0; j < jars.length; j++)
-                {                    
-                    int idxSlash = jars[j].lastIndexOf("/");
-                    if (idxSlash != -1)
-                    {
-                        String jar = jars[j].substring(idxSlash + 1);                        
-                        if (jar.indexOf(".jar") != -1 &&
-                            jar.indexOf("version=") != -1)
-                        {                            
-                            jarList[mark++] = jar;
+                String list = config.getProperty("felix.auto.start." + i);
+                if (list != null && list.length() > 0)
+                {
+                    String [] jars = list.split("\\s+");
+                    for (int j=0; j < jars.length; j++)
+                    {                    
+                        int idxSlash = jars[j].lastIndexOf("/");
+                        if (idxSlash != -1)
+                        {
+                            String jar = jars[j].substring(idxSlash + 1);                        
+                            if (jar.indexOf(".jar") != -1 &&
+                                jar.indexOf("version=") != -1)
+                            {                            
+                                jarList[mark++] = jar;
+                            }
                         }
                     }
                 }
             }
+            String[] trimJarList = new String[mark];
+            System.arraycopy(jarList, 0, trimJarList, 0, mark);
+            return trimJarList;
         }
-        String[] trimJarList = new String[mark];
-        System.arraycopy(jarList, 0, trimJarList, 0, mark);
-        return trimJarList;
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: getJarsFromConfig : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);            
+        }        
+        return new String[0];
     }
     
     private synchronized static String getOptionUpdateProperty
         (Properties config)
     {
         String action = OPTION_UPDATE_NO;
-        if (config != null && !config.isEmpty())
+        try
         {
-            String optionUpdate = config.getProperty("onsip.options.update");
-            if (optionUpdate != null && optionUpdate.length() > 0)
+            if (config != null && !config.isEmpty())
             {
-                optionUpdate = optionUpdate.toLowerCase();
-                if (optionUpdate.equals(OPTION_UPDATE_YES))
+                String optionUpdate = config.getProperty("onsip.options.update");
+                if (optionUpdate != null && optionUpdate.length() > 0)
                 {
-                    action = OPTION_UPDATE_YES;
-                }                
+                    optionUpdate = optionUpdate.toLowerCase();
+                    if (optionUpdate.equals(OPTION_UPDATE_YES))
+                    {
+                        action = OPTION_UPDATE_YES;
+                    }                
+                }
             }
-        }     
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: getOptionUpdateProperty : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);            
+        }
         return action;
     }
     
@@ -447,13 +505,17 @@ public class Updater
                     } 
                     catch (Exception e)
                     {
+                        m_logger.log(Level.WARNING, 
+                            "Exception :: checkUpdates :");
                         /*
                          * If an error is thrown, we'll just ignore and try
                          * to move forward with bundle specific updates
                          */
                         vConfig = null;
-                        m_logger.log(Level.WARNING, "There was an error while " + 
-                            "evaluating the global cache version, details " + e);
+                        m_logger.log(Level.WARNING, 
+                            "There was an error while " + 
+                                "evaluating the global cache version, " +  
+                                    "details " + e.getMessage());
                     }
                 }
                 
@@ -488,6 +550,7 @@ public class Updater
         }
         catch(Exception e)
         {            
+            m_logger.log(Level.SEVERE, "Exception :: checkUpdates :");
             m_logger.log(Level.SEVERE, "Error while checking updates", e);            
         }
     }
@@ -507,8 +570,10 @@ public class Updater
             br = new BufferedReader(new InputStreamReader(is));
             last = Long.parseLong(br.readLine());
         }
-        catch (Exception ex)
-        {
+        catch (Exception e)
+        {                        
+            m_logger.log(Level.WARNING, "Exception :: readLastModified :");
+            m_logger.log(Level.WARNING, e.getMessage(), e);                        
             last = 0;
         }
         finally
@@ -531,99 +596,122 @@ public class Updater
             br = new BufferedReader(new InputStreamReader(is));
             return br.readLine();
         }
+        catch (Exception e)
+        {                        
+            m_logger.log(Level.SEVERE, "Exception :: readLastModified :");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);                                  
+        }
         finally
         {
             if (br != null) br.close();
             if (is != null) is.close();
         }
+        return "";
     }
     
     private synchronized static boolean isUpdateRequired
         (String hosted, String local, Version v)
             throws Exception
     {
-        int idx = local.lastIndexOf("/");
-        int idxJar = local.lastIndexOf(".jar");
-        if (idx != -1 && idxJar > idx)
+        try
         {
-            String jarLoc = local.substring(idx + 1, idxJar + 4);
-            int idxQ = hosted.indexOf("?");
-            if (idxQ != -1)
+            int idx = local.lastIndexOf("/");
+            int idxJar = local.lastIndexOf(".jar");
+            if (idx != -1 && idxJar > idx)
             {
-                String version = hosted.substring(idxQ + 1);
-                hosted = hosted.substring(0, idxQ);                
-                if (jarLoc.equalsIgnoreCase(hosted))
+                String jarLoc = local.substring(idx + 1, idxJar + 4);
+                int idxQ = hosted.indexOf("?");
+                if (idxQ != -1)
                 {
-                    m_logger.info("FOUND MATCH with " + hosted + ", " +
-                    		"now check if update is required");
-                    String[] tokens = version.split("=");
-                    if (tokens.length == 2)
+                    String version = hosted.substring(idxQ + 1);
+                    hosted = hosted.substring(0, idxQ);                
+                    if (jarLoc.equalsIgnoreCase(hosted))
                     {
-                        if (tokens[0].equalsIgnoreCase("version"))
+                        m_logger.info("FOUND MATCH with " + hosted + ", " +
+                        		"now check if update is required");
+                        String[] tokens = version.split("=");
+                        if (tokens.length == 2)
                         {
-                            Version cmp = null; 
-                            try
+                            if (tokens[0].equalsIgnoreCase("version"))
                             {
-                                cmp = Version.parseVersion(tokens[1]);
-                            }
-                            catch(NumberFormatException nfe)
-                            {
-                                m_logger.log(Level.WARNING,
-                                    "Version # is not valid -> " + tokens[1]);
-                                return false;
-                            }
-                            
-                            if (cmp != null && v != null)
-                            {
-                                boolean areEqual = (cmp.compareTo(v) != 0);
-                                if (areEqual)
+                                Version cmp = null; 
+                                try
                                 {
-                                    m_logger.log(Level.FINE, 
-                                        "YES We need to update " + jarLoc + 
-                                            " to version " + tokens[1] + 
-                                            " Current version is " + v);
+                                    cmp = Version.parseVersion(tokens[1]);
                                 }
-                                else
+                                catch(NumberFormatException nfe)
                                 {
-                                    m_logger.log(Level.FINE, 
-                                        "NO We don't need to update " + 
-                                            jarLoc + " version is up to date");
+                                    m_logger.log(Level.WARNING,
+                                        "Version # is not valid -> " + tokens[1]);
+                                    return false;
                                 }
-                                return areEqual;
+                                
+                                if (cmp != null && v != null)
+                                {
+                                    boolean areEqual = (cmp.compareTo(v) != 0);
+                                    if (areEqual)
+                                    {
+                                        m_logger.log(Level.FINE, 
+                                            "YES We need to update " + jarLoc + 
+                                                " to version " + tokens[1] + 
+                                                " Current version is " + v);
+                                    }
+                                    else
+                                    {
+                                        m_logger.log(Level.FINE, 
+                                            "NO We don't need to update " + 
+                                                jarLoc + " version is up to date");
+                                    }
+                                    return areEqual;
+                                }
                             }
                         }
-                    }
-                }                
-            }                       
+                    }                
+                }                       
+            }
         }
+        catch (Exception e)
+        {                        
+            m_logger.log(Level.SEVERE, "Exception :: isUpdateRequired :");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);                                  
+        }
+        
         return false;
     }
            
     private synchronized static String getLatestBundleVersion(String[] fs)
     {
-        int store = -1;
-        double max = -1;
-        if (fs.length == 1)
+        try
         {
-            return fs[0];
-        }
-        for(int i=0; i < fs.length; i++)
-        {
-            String f = fs[i];            
-            if (f.indexOf("version") == 0)
+            int store = -1;
+            double max = -1;
+            if (fs.length == 1)
             {
-                String v = f.substring(7);
-                Double d = Double.valueOf(v);
-                if (d > max)
+                return fs[0];
+            }
+            for(int i=0; i < fs.length; i++)
+            {
+                String f = fs[i];            
+                if (f.indexOf("version") == 0)
                 {
-                    max = d;
-                    store = i;
+                    String v = f.substring(7);
+                    Double d = Double.valueOf(v);
+                    if (d > max)
+                    {
+                        max = d;
+                        store = i;
+                    }
                 }
             }
+            if (store != -1)
+            {
+                return fs[store];
+            }
         }
-        if (store != -1)
-        {
-            return fs[store];
+        catch (Exception e)
+        {                        
+            m_logger.log(Level.SEVERE, "Exception :: getLatestBundleVersion :");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);                                  
         }
         return "";
     }
@@ -785,6 +873,7 @@ public class Updater
         }
         catch (Exception e)
         {
+            m_logger.log(Level.SEVERE, "Exception :: getVersion :");
             m_logger.log(Level.SEVERE, "Error while trying to read version", e);
         }
         return null;
@@ -793,68 +882,76 @@ public class Updater
     private synchronized static File[] getOustedJarList(String [] hostedBundles)
         throws Exception
     {
-        File felix = getFelixDir();
-        File [] flagBundles = new File[0];        
-        if (felix.exists() && felix.isDirectory())
+        File [] flagBundles = new File[0];
+        try
         {
-            File [] fBundles = felix.listFiles();
-            flagBundles = new File[fBundles.length];
-            int counter = 0;
-            for (int i=0; i < fBundles.length; i++)
+            File felix = getFelixDir();                    
+            if (felix.exists() && felix.isDirectory())
             {
-                File bundle = fBundles[i];
-                if (bundle.isDirectory())
-                {                                     
-                    if (bundle.getName().startsWith("$") &&
-                        bundle.getName().endsWith("$"))
-                    {
-                        continue;
-                    }
-                                                                       
-                    File fLocation = new File(bundle.getPath() + 
-                        SEPARATOR + "bundle.location");
-                    File fLastModified = new File(bundle.getPath() + 
-                        SEPARATOR + "bundle.lastmodified");                    
-                    if (fLocation.exists() && fLastModified.exists())
-                    {                                                
-                        String localLocation = readLocation(fLocation);
-                        /*
-                         * The currently install version
-                         */
-                        Version v = getVersion(bundle.getAbsolutePath());
-                        String localNoParam = localLocation;
-                        int idxQ = localLocation.indexOf("?");
-                        if (idxQ != -1)
+                File [] fBundles = felix.listFiles();
+                flagBundles = new File[fBundles.length];
+                int counter = 0;
+                for (int i=0; i < fBundles.length; i++)
+                {
+                    File bundle = fBundles[i];
+                    if (bundle.isDirectory())
+                    {                                     
+                        if (bundle.getName().startsWith("$") &&
+                            bundle.getName().endsWith("$"))
                         {
-                            //localNoParam = localNoParam.substring(0, idxQ);
+                            continue;
                         }
-                        if (v != null)
-                        {
-                            m_logger.log(Level.INFO, 
-                                "Installed version " + 
-                                    v.toString() + " for bundle " + 
+                                                                           
+                        File fLocation = new File(bundle.getPath() + 
+                            SEPARATOR + "bundle.location");
+                        File fLastModified = new File(bundle.getPath() + 
+                            SEPARATOR + "bundle.lastmodified");                    
+                        if (fLocation.exists() && fLastModified.exists())
+                        {                                                
+                            String localLocation = readLocation(fLocation);
+                            /*
+                             * The currently install version
+                             */
+                            Version v = getVersion(bundle.getAbsolutePath());
+                            String localNoParam = localLocation;
+                            int idxQ = localLocation.indexOf("?");
+                            if (idxQ != -1)
+                            {
+                                //localNoParam = localNoParam.substring(0, idxQ);
+                            }
+                            if (v != null)
+                            {
+                                m_logger.log(Level.INFO, 
+                                    "Installed version " + 
+                                        v.toString() + " for bundle " + 
+                                            localNoParam);
+                            }
+                            else
+                            {
+                                m_logger.log(Level.INFO, 
+                                    "Could not identify installed version for " + 
                                         localNoParam);
-                        }
-                        else
-                        {
-                            m_logger.log(Level.INFO, 
-                                "Could not identify installed version for " + 
-                                    localNoParam);
-                        }
-                        
-                        for (int j=0; j < hostedBundles.length; j++)
-                        {
-                            String jar = hostedBundles[j];                                    
-                            boolean update = isUpdateRequired(jar, localLocation, v);                            
-                            if (update)
-                            {                                                                                        
-                                flagBundles[counter++] = bundle;
-                                break;
+                            }
+                            
+                            for (int j=0; j < hostedBundles.length; j++)
+                            {
+                                String jar = hostedBundles[j];                                    
+                                boolean update = isUpdateRequired(jar, localLocation, v);                            
+                                if (update)
+                                {                                                                                        
+                                    flagBundles[counter++] = bundle;
+                                    break;
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+        catch (Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: getOustedJarList :");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
         }
         return flagBundles;
     }

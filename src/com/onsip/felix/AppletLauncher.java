@@ -128,7 +128,7 @@ public class AppletLauncher
     private LoadEventSource m_loadEventSource = null;
     
     static 
-    {                
+    {                                       
         m_logger.setParent(java.util.logging.Logger.getLogger("com.onsip"));
         
         Properties props = new Properties();            
@@ -143,7 +143,7 @@ public class AppletLauncher
         props.setProperty("net.java.sip.communicator.level", 
             java.util.logging.Level.SEVERE.toString());
         props.setProperty("gov.nist", 
-            java.util.logging.Level.SEVERE.toString());
+            java.util.logging.Level.SEVERE.toString());        
                        
         try
         { 
@@ -160,7 +160,7 @@ public class AppletLauncher
         }
         catch (IOException e)
         { 
-            System.out.println("Error initializing log properties: " + e.getMessage());
+            System.out.println("Error initializing log properties: " + e);
             e.printStackTrace(); 
         }            
              
@@ -170,18 +170,26 @@ public class AppletLauncher
             Updater.trash();
         }
         catch (Exception e)
-        {
-            System.out.println(
-                "Error while trying to delete all cache stores " + e);
-            e.printStackTrace();
+        {            
+            m_logger.log(Level.SEVERE,
+                "Error while trying to delete all cache stores " + e, e);                        
         }
     }
         
     public void init()
     {
         try
-        {                        
-            win = JSObject.getWindow(this);
+        {                    
+            try
+            {
+                win = JSObject.getWindow(this);
+            }
+            catch (JSException jse)
+            {
+                m_logger.log(Level.SEVERE, "JSException :: init : ");
+                m_logger.log(Level.SEVERE,
+                    "Can deliver messages to the javascript client", jse);                
+            }
                                     
             m_loadEventSource = new LoadEventSource();
             m_loadEventSource.addEventListener(new LoadHandler());
@@ -219,17 +227,17 @@ public class AppletLauncher
                 m.invoke(this.getClass().getClassLoader(), 
                     new Object[]{ false });                                
             }
-            
-            /* Monitor the progress of bundle downloads */ 
+                                     
             setupDownloadMonitoring();
             
             initFramework(new String[] {});                        
         }
         catch (Exception e)
-        {            
-            m_logger.log(Level.SEVERE, e.getMessage(), e);            
+        {   
+            m_logger.log(Level.SEVERE, "Exception :: init : ");
             m_logger.log(Level.SEVERE, 
-                "create Framework didn't complete successfully");
+                "create Framework didn't complete successfully", e);
+            sendError(e);
         }
     }
     
@@ -287,8 +295,11 @@ public class AppletLauncher
         }
         catch (Exception e)
         {
-            m_logger.log(Level.SEVERE, "Error initializing Progress Monitor: " + e.getMessage());
-            e.printStackTrace(); 
+            /* Monitor the progress of bundle downloads */
+            m_logger.log(Level.SEVERE,
+                "Exception :: setupDownloadMonitoring : ");
+            m_logger.log(Level.SEVERE,
+                "Error initializing Progress Monitor: " + e, e);            
         }
     }
     
@@ -312,118 +323,155 @@ public class AppletLauncher
     /* Client side javascript sink */
     private void setJsCallbackFn()
     {        
-        String cb = this.getParameter("callback");                        
-        if (cb != null && cb.length() > 0)
-        {            
-            System.setProperty("onsip.js.callback", cb);            
-            JS_FN_EXPORTED = cb;            
-        }        
+        try
+        {
+            String cb = this.getParameter("callback");                        
+            if (cb != null && cb.length() > 0)
+            {            
+                System.setProperty("onsip.js.callback", cb);            
+                JS_FN_EXPORTED = cb;            
+            }  
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE,
+                "Exception :: setJsCallbackFn : ");
+            m_logger.log(Level.SEVERE,
+                "We couldn't set the javascript callback function, " + 
+                "we'll default to [" + JS_FN_EXPORTED + "]," + 
+                "error details " + e, e);  
+        }
     }
          
     private synchronized void setProxyFromParams()
     {
-        String serverAddress = this.getParameter("server_address");
-        String proxyAddress = this.getParameter("proxy_address");
-        String proxyPort = this.getParameter("proxy_port");
-        
-        if (serverAddress != null)
+        try
         {
-            serverAddress = serverAddress.trim();
-            if (serverAddress.length() > 0)
+            String serverAddress = this.getParameter("server_address");
+            String proxyAddress = this.getParameter("proxy_address");
+            String proxyPort = this.getParameter("proxy_port");
+            
+            if (serverAddress != null)
             {
-                System.setProperty(ACCOUNT_PREFIX + 
-                    "SERVER_ADDRESS", serverAddress);
+                serverAddress = serverAddress.trim();
+                if (serverAddress.length() > 0)
+                {
+                    System.setProperty(ACCOUNT_PREFIX + 
+                        "SERVER_ADDRESS", serverAddress);
+                }
             }
+            if (proxyAddress != null)
+            {
+                proxyAddress = proxyAddress.trim();
+                if (proxyAddress.length() > 0)
+                {
+                    System.setProperty(ACCOUNT_PREFIX + 
+                        "PROXY_ADDRESS", proxyAddress);
+                }
+            }
+            
+            if (proxyPort != null)
+            {
+                proxyPort = proxyPort.trim();
+                if (proxyPort.length() > 0)
+                {
+                    System.setProperty(ACCOUNT_PREFIX + 
+                        "PROXY_PORT", proxyPort);
+                }
+            }          
         }
-        if (proxyAddress != null)
+        catch(Exception e)
         {
-            proxyAddress = proxyAddress.trim();
-            if (proxyAddress.length() > 0)
-            {
-                System.setProperty(ACCOUNT_PREFIX + 
-                    "PROXY_ADDRESS", proxyAddress);
-            }
+            m_logger.log(Level.SEVERE,
+                "Exception :: setProxyFromParams : ");
+            m_logger.log(Level.SEVERE,
+                "Error while setting proxy, details " + e, e);
         }
-        
-        if (proxyPort != null)
-        {
-            proxyPort = proxyPort.trim();
-            if (proxyPort.length() > 0)
-            {
-                System.setProperty(ACCOUNT_PREFIX + 
-                    "PROXY_PORT", proxyPort);
-            }
-        }                
     }
      
+    private void setPropertiesConfigFile()
+    {
+        try
+        {
+            System.setProperty(CONFIG_PROPERTIES_PROP, 
+                CONFIG_PROPERTIES_FILE_VALUE);
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE,
+                "Exception :: setPropertiesConfigFile : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+        }
+    }
+    
     public void initFramework(String[] args) throws Exception
-    {           
-        /* Set the location of the felix properties file */
-        System
-            .setProperty(CONFIG_PROPERTIES_PROP, CONFIG_PROPERTIES_FILE_VALUE);
-
+    {                   
         /* Set the javascript callback function */
         setJsCallbackFn();
         
         /* Proxy details passed through embed parameters */
         setProxyFromParams();
         
-        /* Check if this platform can run the applet */ 
-        Capabilities.isPlatformSupported();
-                
-        /* Load system properties. */
-        AppletLauncher.loadSystemProperties();
-
-        /* Read configuration properties. */
-        Properties configProps = AppletLauncher.loadConfigProperties();
-                                                        
-        /* Copy framework properties from the system properties. */
-        AppletLauncher.copySystemProperties(configProps);
-                
-        /* Check for updated jars */        
-        Updater.checkUpdates(configProps);
-                
-        /*
-         * If enabled, register a shutdown hook to make sure the framework is 
-         * cleanly shutdown when the VM exits.
-         */
-        String enableHook = configProps.getProperty(SHUTDOWN_HOOK_PROP);
-        if ((enableHook == null) || !enableHook.equalsIgnoreCase("false"))
-        {
-            Runtime.getRuntime().addShutdownHook(
-                new Thread("Felix Shutdown Hook")
-                {
-                    public void run()
-                    {
-                        try
-                        {
-                            if (m_fwk != null)
-                            {                                                                
-                                m_logger.log(Level.FINE, 
-                                    "Shutdown called from AppletLauncher " + 
-                                        new Date().toString());
-                                m_fwk.stop();
-                                m_fwk.waitForStop(0);                                 
-                            } 
-                        }
-                        catch (Exception ex)
-                        {
-                            m_logger.log(Level.SEVERE, 
-                                    "Error stopping framework: ", ex);
-                        }
-                    }
-                });
-        }
-
         try
-        {                                
+        {       
+            /* Set the location of the felix properties file */
+            setPropertiesConfigFile();
+            
+            /* Check if this platform can run the applet */ 
+            Capabilities.isPlatformSupported();
+                    
+            /* Load system properties. */
+            loadSystemProperties();
+    
+            /* Read configuration properties. */
+            Properties configProps = loadConfigProperties();
+                                                            
+            /* Copy framework properties from the system properties. */
+            copySystemProperties(configProps);
+                    
+            /* Check for updated jars */        
+            Updater.checkUpdates(configProps);
+                           
+            /*
+             * If enabled, register a shutdown hook to make sure the framework is 
+             * cleanly shutdown when the VM exits.
+             */
+            String enableHook = configProps.getProperty(SHUTDOWN_HOOK_PROP);
+            if ((enableHook == null) || !enableHook.equalsIgnoreCase("false"))
+            {
+                Runtime.getRuntime().addShutdownHook(
+                    new Thread("Felix Shutdown Hook")
+                    {
+                        public void run()
+                        {
+                            try
+                            {
+                                if (m_fwk != null)
+                                {                                                                
+                                    m_logger.log(Level.FINE, 
+                                        "Shutdown called from AppletLauncher " + 
+                                            new Date().toString());
+                                    m_fwk.stop();
+                                    m_fwk.waitForStop(0);                                 
+                                } 
+                            }
+                            catch (Exception ex)
+                            {
+                                m_logger.log(Level.SEVERE, 
+                                        "Error stopping framework: ", ex);
+                            }
+                        }
+                    });
+            }
+                                       
             /* 10% Complete */
             m_loadEventSource.fireEvent(
                 new String[] 
                    { this.getSerializedEvent
                         (JS_EVT_LOADING, "create new framework", 
                             PERC_CREATE_FRAMEWORK) });
-                        
+                
+            
             /* Create an instance of the framework. */
             FrameworkFactory factory = getFrameworkFactory();
             m_fwk = factory.newFramework(configProps);
@@ -463,8 +511,7 @@ public class AppletLauncher
                         
             /* Start the framework. */            
             m_fwk.start();             
-            
-                                       
+                                                   
             /* 90% Complete */
             m_loadEventSource.fireEvent(
                 new String[] 
@@ -507,22 +554,13 @@ public class AppletLauncher
         }
         catch (NoDeviceFoundException ndfe)
         {
-            m_logger.log(Level.WARNING, "Could not find input device ", ndfe);
+            m_logger.log(Level.WARNING, "Could not find input device ", ndfe);            
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            m_logger.log(Level.SEVERE, "Could not create framework: ", ex);
-            /*
-             * Should an error be thrown while trying to create the felix
-             * framework, we'll attempt to delete all remnant cache storage.
-             * Felix seems to have problems recovering from half written
-             * bundles.
-             */
-            // m_logger.log(Level.SEVERE, 
-            //    "As a precaution remove the felix & jitsi cache store");
-            // Updater.cleanFelixCacheDir();
-            
-            //System.exit(0);
+            m_logger.log(Level.SEVERE, 
+                "Could not load the entirety of the framework bundles: ", e);
+            sendError(new Exception("Could not load the phone"));            
         }        
     }
            
@@ -534,37 +572,48 @@ public class AppletLauncher
      * @return The created <tt>FrameworkFactory</tt> instance.
      * @throws Exception if any errors occur.
      **/
-    private static FrameworkFactory getFrameworkFactory() throws Exception
+    private static FrameworkFactory getFrameworkFactory()
+        throws Exception
     {
-        URL url =
-            AppletLauncher.class.getClassLoader().getResource(
-                "META-INF/services/org.osgi.framework.launch.FrameworkFactory");
-        if (url != null)
+        try
         {
-            BufferedReader br =
-                new BufferedReader(new InputStreamReader(url.openStream()));
-
-            try
+            URL url =
+                AppletLauncher.class.getClassLoader().getResource(
+                    "META-INF/services/org.osgi.framework.launch.FrameworkFactory");
+            if (url != null)
             {
-                for (String s = br.readLine(); s != null; s = br.readLine())
+                BufferedReader br =
+                    new BufferedReader(new InputStreamReader(url.openStream()));    
+                try
                 {
-                    s = s.trim();
-                    /* Try to load first non-empty, non-commented line. */
-                    if ((s.length() > 0) && (s.charAt(0) != '#'))
+                    for (String s = br.readLine(); s != null; s = br.readLine())
                     {
-                        return (FrameworkFactory) Class.forName(s)
-                            .newInstance();
+                        s = s.trim();
+                        /* Try to load first non-empty, non-commented line. */
+                        if ((s.length() > 0) && (s.charAt(0) != '#'))
+                        {
+                            return (FrameworkFactory) Class.forName(s)
+                                .newInstance();
+                        }
                     }
                 }
+                finally
+                {
+                    if (br != null)
+                        br.close();
+                }    
             }
-            finally
-            {
-                if (br != null)
-                    br.close();
-            }
-
         }
-        throw new Exception("Could not find framework factory.");
+        catch (Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: getFrameworkFactory : ");
+            m_logger.log(Level.SEVERE, 
+                "Could not load framework factory, details " + 
+                    e.getMessage(), e);
+            throw e;
+        }
+        throw new Exception("Could not load " + 
+            FrameworkFactory.class.toString());
     }
 
     /**
@@ -582,61 +631,77 @@ public class AppletLauncher
      * </p>
      **/
     protected static void loadSystemProperties()
-    {
-        /* See if the property URL was specified as a property. */
-        URL propURL = null;
-        String custom = System.getProperty(SYSTEM_PROPERTIES_PROP);
-        if (custom == null)
-        {
-           return;
-        } 
+        throws Exception
+    {       
         try
         {
-            propURL = new URL(custom);
-        }
-        catch (MalformedURLException ex)
-        {
-            m_logger.log(Level.SEVERE, "Main: ", ex);
-            return;
-        }
-        
-        /* Read the properties file. */
-        Properties props = new Properties();
-        InputStream is = null;
-        try
-        {
-            is = propURL.openConnection().getInputStream();
-            props.load(is);
-            is.close();
-        }
-        catch (FileNotFoundException ex)
-        {
-            // Ignore file not found.
-        }
-        catch (Exception ex)
-        {
-            m_logger.log(Level.SEVERE, "Error loading system " + 
-                " properties from " + propURL, ex);            
+            /* See if the property URL was specified as a property. */
+            URL propURL = null;
+            String custom = System.getProperty(SYSTEM_PROPERTIES_PROP);
+            if (custom == null)
+            {
+               return;
+            } 
             try
             {
-                if (is != null)
-                    is.close();
+                propURL = new URL(custom);
             }
-            catch (IOException ex2)
+            catch (MalformedURLException mue)
             {
-                // Nothing we can do.
+                m_logger.log(Level.SEVERE,
+                    "MalformedURLException :: loadSystemProperties : ");
+                m_logger.log(Level.SEVERE, mue.getMessage(), mue);
+                return;
             }
-            return;
+            
+            /* Read the properties file. */
+            Properties props = new Properties();
+            InputStream is = null;
+            try
+            {
+                is = propURL.openConnection().getInputStream();
+                props.load(is);
+                is.close();
+            }
+            catch (FileNotFoundException ex)
+            {
+                // Ignore file not found.
+            }
+            catch (Exception e)
+            {
+                m_logger.log(Level.SEVERE,
+                    "Exception :: loadSystemProperties : ");                    
+                m_logger.log(Level.SEVERE, 
+                    "Error loading system properties from " + propURL + 
+                        ", details " + e.getMessage(), e);            
+                try
+                {
+                    if (is != null)
+                        is.close();
+                }
+                catch (IOException ex2)
+                {
+                    // Nothing we can do.
+                }
+                return;
+            }
+        
+            /* Perform variable substitution on specified properties. */
+            @SuppressWarnings("unchecked")
+            Enumeration<String> e = (Enumeration<String>) props.propertyNames();
+            while (e.hasMoreElements())
+            {
+                String name = (String) e.nextElement();
+                System.setProperty(name,
+                    Util.substVars(props.getProperty(name), name, null, null));
+            }
         }
-
-        /* Perform variable substitution on specified properties. */
-        @SuppressWarnings("unchecked")
-        Enumeration<String> e = (Enumeration<String>) props.propertyNames();
-        while (e.hasMoreElements())
+        catch (Exception e)
         {
-            String name = (String) e.nextElement();
-            System.setProperty(name,
-                Util.substVars(props.getProperty(name), name, null, null));
+            m_logger.log(Level.SEVERE,
+                "Exception :: loadSystemProperties : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -659,82 +724,107 @@ public class AppletLauncher
      *         error.
      * @throws Exception 
      **/
-    protected static Properties loadConfigProperties() throws Exception
+    protected static Properties loadConfigProperties() 
+        throws Exception
     {      
-        /* See if the property URL was specified as a property.*/
-        URL propURL = null;
-        String custom = System.getProperty(CONFIG_PROPERTIES_PROP);
-        if (custom == null)
-        {
-            throw new Exception("No " + CONFIG_PROPERTIES_FILE_VALUE + " found.");      
-        }        
+        Properties props = null;
         try
         {
-            //propURL = new URL(custom);
-            propURL =
-                AppletLauncher.class.getClassLoader().getResource(
-                    "META-INF/felix.onsip.properties");                        
-        }
-        catch (Exception ex)
-        {            
-            throw new Exception("Could not load property file " + 
-                CONFIG_PROPERTIES_FILE_VALUE);      
-        }
-        
-        /* Read the properties file. */
-        Properties props = new Properties();
-        InputStream is = null;
-        try
-        {
-            /* Try to load config.properties. */
-            is = propURL.openConnection().getInputStream();
-            props.load(is);
-            is.close();
-        }
-        catch (Exception ex)
-        {
-            /* Try to close input stream if we have one. */
+            /* See if the property URL was specified as a property.*/
+            URL propURL = null;
+            String custom = System.getProperty(CONFIG_PROPERTIES_PROP);
+            if (custom == null)
+            {                
+                throw new Exception(CONFIG_PROPERTIES_FILE_VALUE + 
+                    " not found.");      
+            }        
             try
             {
-                if (is != null)
-                    is.close();
+                //propURL = new URL(custom);
+                propURL =
+                    AppletLauncher.class.getClassLoader().getResource(
+                        "META-INF/felix.onsip.properties");                        
             }
-            catch (IOException ex2)
+            catch (Exception ex)
+            {                            
+                throw new Exception("Could not load property file " + 
+                    CONFIG_PROPERTIES_FILE_VALUE);      
+            }
+        
+            /* Read the properties file. */
+            props = new Properties();
+            InputStream is = null;
+            try
             {
-                /* Nothing we can do. */
-            }            
-            throw new Exception("No " + CONFIG_PROPERTIES_FILE_VALUE + " found.");            
-        }
+                /* Try to load config.properties. */
+                is = propURL.openConnection().getInputStream();
+                props.load(is);
+                is.close();
+            }
+            catch (Exception ex)
+            {
+                /* Try to close input stream if we have one. */
+                try
+                {
+                    if (is != null)
+                        is.close();
+                }
+                catch (IOException ex2)
+                {
+                    /* Nothing we can do. */
+                }            
+                throw new Exception("No " + CONFIG_PROPERTIES_FILE_VALUE + " found.");            
+            }
 
-        /* Perform variable substitution for system properties. */
-        @SuppressWarnings("unchecked")
-        Enumeration<String> e = (Enumeration<String>) props.propertyNames();
-        while (e.hasMoreElements())
+        
+            /* Perform variable substitution for system properties. */
+            @SuppressWarnings("unchecked")
+            Enumeration<String> e = (Enumeration<String>) props.propertyNames();
+            while (e.hasMoreElements())
+            {
+                String name = (String) e.nextElement();
+                props.setProperty(name,
+                    Util.substVars(props.getProperty(name), name, null, props));
+            }
+    
+            String felixCacheDir = getFelixCacheDir();
+            props.setProperty("org.osgi.framework.storage", felixCacheDir);
+            props.setProperty("felix.cache.rootdir", felixCacheDir);
+        }
+        catch (Exception e)
         {
-            String name = (String) e.nextElement();
-            props.setProperty(name,
-                Util.substVars(props.getProperty(name), name, null, props));
+            m_logger.log(Level.SEVERE,
+                "Exception :: loadConfigProperties : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+            throw e;
         }
-
-        String felixCacheDir = getFelixCacheDir();
-        props.setProperty("org.osgi.framework.storage", felixCacheDir);
-        props.setProperty("felix.cache.rootdir", felixCacheDir);              
         return props;
     }
 
     protected static void copySystemProperties(Properties configProps)
+        throws Exception
     {
-        @SuppressWarnings("unchecked")
-        Enumeration<String> e =
-            (Enumeration<String>) System.getProperties().propertyNames();
-        while (e.hasMoreElements())
+        try
         {
-            String key = (String) e.nextElement();
-            if (key.startsWith("felix.")
-                || key.startsWith("org.osgi.framework."))
+            @SuppressWarnings("unchecked")
+            Enumeration<String> e =
+                (Enumeration<String>) System.getProperties().propertyNames();
+            while (e.hasMoreElements())
             {
-                configProps.setProperty(key, System.getProperty(key));
+                String key = (String) e.nextElement();
+                if (key.startsWith("felix.")
+                    || key.startsWith("org.osgi.framework."))
+                {
+                    configProps.setProperty(key, System.getProperty(key));
+                }
             }
+        }
+        catch (Exception e)
+        {
+            m_logger.log(Level.SEVERE,
+                "Exception :: copySystemProperties : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -743,17 +833,26 @@ public class AppletLauncher
         return m_fwk;
     }
      
-    public synchronized static Object getService()
+    public static Object getService()
     {
-        BundleContext context = getFramework().getBundleContext();                   
-        
-        ServiceReference sref =
-            context.getServiceReference
-                ("com.onsip.communicator.impl.applet.AppletActivator");
-
-        Object service = context.getService(sref);
-                        
-        return service;                
+        try
+        {
+            BundleContext context = getFramework().getBundleContext();                   
+            
+            ServiceReference sref =
+                context.getServiceReference
+                    ("com.onsip.communicator.impl.applet.AppletActivator");
+    
+            Object service = context.getService(sref);
+                            
+            return service;
+        }
+        catch (Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: getService : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+        }
+        return null;
     }
     
     public static JSObject getJSObject()
@@ -772,21 +871,21 @@ public class AppletLauncher
      * the relevant events down to the browser.
      */
     public void initHandlers() 
-    {
-        RegistrationEventSource registrationSource = new RegistrationEventSource();
-        registrationSource.addEventListener(new RegistrationHandler());
-                                
-        CallEventSource callEventSource = new CallEventSource();
-        callEventSource.addEventListener(new CallHandler());
-        
-        CallPeerEventSource callPeerEventSource = new CallPeerEventSource();
-        callPeerEventSource.addEventListener(new CallPeerHandler());
-        
-        Object service = getService();            
-        Class<? extends Object> clazz = service.getClass();
-        
+    {                
         try
-        {     
+        {
+            RegistrationEventSource registrationSource = new RegistrationEventSource();
+            registrationSource.addEventListener(new RegistrationHandler());
+                                    
+            CallEventSource callEventSource = new CallEventSource();
+            callEventSource.addEventListener(new CallHandler());
+            
+            CallPeerEventSource callPeerEventSource = new CallPeerEventSource();
+            callPeerEventSource.addEventListener(new CallPeerHandler());
+            
+            Object service = getService();            
+            Class<? extends Object> clazz = service.getClass();
+            
             // For Registration State Change Events
             Method m = clazz.getMethod("setRegistrationEventSource", 
                 new Class[] { Object.class });
@@ -807,23 +906,33 @@ public class AppletLauncher
         }
         catch (SecurityException e)
         {
-           m_logger.log(Level.SEVERE, "SecurityException: " + e, e);
+            m_logger.log(Level.SEVERE, "SecurityException :: initHandlers : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);            
         }
         catch (NoSuchMethodException e)
         {
-            m_logger.log(Level.SEVERE, "SecurityException: " + e, e);
+            m_logger.log(Level.SEVERE, "NoSuchMethodException :: initHandlers : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);            
         }                    
         catch (IllegalArgumentException e)
         {
-            m_logger.log(Level.SEVERE, "IllegalArgumentException: " + e, e);
+            m_logger.log(Level.SEVERE, "IllegalArgumentException :: initHandlers : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);            
         }
         catch (IllegalAccessException e)
         {
-            m_logger.log(Level.SEVERE, "IllegalAccessException: " + e, e);
+            m_logger.log(Level.SEVERE, "IllegalAccessException :: initHandlers : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);            
         }
         catch (InvocationTargetException e)
         {
-            m_logger.log(Level.SEVERE, "InvocationTargetException: " + e, e);
+            m_logger.log(Level.SEVERE, "InvocationTargetException :: initHandlers : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);            
+        }
+        catch (Exception e)
+        {            
+            m_logger.log(Level.SEVERE, "Exception :: initHandlers : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
         }
     }
        
@@ -836,118 +945,157 @@ public class AppletLauncher
      */
     public boolean api(String fnName, String [] args)
     {
-        m_logger.log(Level.FINE, "In api call " + fnName + " " + args.length);
-        for (int i=0; i < args.length ; i++)
+        try
         {
-            if (!fnName.equalsIgnoreCase("register"))
+            m_logger.log(Level.FINE, "In api call " + fnName + " " + args.length);
+            for (int i=0; i < args.length ; i++)
             {
-                m_logger.log(Level.FINE, "arg " + i + " => " + args[i]);
+                if (!fnName.equalsIgnoreCase("register"))
+                {
+                    m_logger.log(Level.FINE, "arg " + i + " => " + args[i]);
+                }
             }
+            AccessController.doPrivileged(new Generic(fnName, args));
+            return true;
         }
-        AccessController.doPrivileged(new Generic(fnName, args));
-        return true; 
+        catch (Exception e)
+        {            
+            m_logger.log(Level.SEVERE, "Exception :: api : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+        }
+        return false; 
     }
                        
     public void serviceChanged(ServiceEvent event)
     {        
-        String[] objectClass =
-            (String[]) event.getServiceReference().getProperty("objectClass");
-
-        if (event.getType() == ServiceEvent.REGISTERED)
-        {               
-            m_logger.log(Level.FINE, "Service of type "
-                + objectClass[0] + " REGISTERED. ");
-            
-            if (REGISTERED_COUNTER < EXPECTED_REGISTERED)
-            {
-                REGISTERED_COUNTER++;
-                double counter = REGISTERED_COUNTER;
-                double total = EXPECTED_REGISTERED;
-                double percent = (counter / total) * 100.0;
-                percent = 
-                    ((PERC_SETUP_HANDLERS - PERC_START_FRAMEWORK) * percent) 
-                        / 100;
-                percent = PERC_START_FRAMEWORK + percent;
-                if (percent > PERC_SETUP_HANDLERS)
+        try
+        {
+            String[] objectClass =
+                (String[]) event.getServiceReference().getProperty("objectClass");
+    
+            if (event.getType() == ServiceEvent.REGISTERED)
+            {               
+                m_logger.log(Level.FINE, "Service of type "
+                    + objectClass[0] + " REGISTERED. ");
+                
+                if (REGISTERED_COUNTER < EXPECTED_REGISTERED)
                 {
-                    percent = PERC_SETUP_HANDLERS;
+                    REGISTERED_COUNTER++;
+                    double counter = REGISTERED_COUNTER;
+                    double total = EXPECTED_REGISTERED;
+                    double percent = (counter / total) * 100.0;
+                    percent = 
+                        ((PERC_SETUP_HANDLERS - PERC_START_FRAMEWORK) * percent) 
+                            / 100;
+                    percent = PERC_START_FRAMEWORK + percent;
+                    if (percent > PERC_SETUP_HANDLERS)
+                    {
+                        percent = PERC_SETUP_HANDLERS;
+                    }
+                               
+                    int percentAbs = (int) Math.floor(percent);
+                                                        
+                    m_loadEventSource.fireEvent(
+                        new String[] 
+                           { this.getSerializedEvent
+                                (JS_EVT_LOADING, "registering bundle " + 
+                                    objectClass[0], percentAbs) });
                 }
-                           
-                int percentAbs = (int) Math.floor(percent);
-                                                    
-                m_loadEventSource.fireEvent(
-                    new String[] 
-                       { this.getSerializedEvent
-                            (JS_EVT_LOADING, "registering bundle " + 
-                                objectClass[0], percentAbs) });
+            }
+            else if (event.getType() == ServiceEvent.UNREGISTERING)
+            {
+                m_logger.log(Level.FINE, "Service of type "
+                    + objectClass[0] + " UNREGISTERING.");
+            }
+            else if (event.getType() == ServiceEvent.MODIFIED)
+            {
+                m_logger.log(Level.FINE, "Service of type "
+                    + objectClass[0] + " MODIFIED.");
             }
         }
-        else if (event.getType() == ServiceEvent.UNREGISTERING)
-        {
-            m_logger.log(Level.FINE, "Service of type "
-                + objectClass[0] + " UNREGISTERING.");
-        }
-        else if (event.getType() == ServiceEvent.MODIFIED)
-        {
-            m_logger.log(Level.FINE, "Service of type "
-                + objectClass[0] + " MODIFIED.");
+        catch (Exception e)
+        {            
+            m_logger.log(Level.SEVERE, "Exception :: serviceChanged : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
         }
     }
     
     @Override
     public void bundleChanged(BundleEvent bundle)
     {        
-        int state = bundle.getBundle().getState();
-        String stateAlias = "UNKOWN";
-        switch (state)
+        try
         {
-        case 1:
-            stateAlias = "INSTALLED";
-            break;
-        case 2:
-            stateAlias = "STARTED";
-            break;
-        case 4:
-            stateAlias = "STOPPED";
-            break;
-        case 8:
-            stateAlias = "UPDATED";
-            break;
-        case 10:
-            stateAlias = "UNINSTALLED";
-            break;
-        case 20:
-            stateAlias = "RESOLVED";
-            break;
-        case 40:
-            stateAlias = "UNRESOLVED";
-            break;
-        case 80:
-            stateAlias = "STARTING";
-            break;
-        case 100:
-            stateAlias = "STOPPING";
-            break;
-        case 200:
-            stateAlias = "LAZY_ACTIVATION";
-            break;
-        case 32:
-            stateAlias = "RENAME_FILE_ACTION";
-            break;
-        default:
-            stateAlias +=  " (" + state + ") ";
+            int state = bundle.getBundle().getState();
+            String stateAlias = "UNKOWN";
+            switch (state)
+            {
+            case 1:
+                stateAlias = "INSTALLED";
+                break;
+            case 2:
+                stateAlias = "STARTED";
+                break;
+            case 4:
+                stateAlias = "STOPPED";
+                break;
+            case 8:
+                stateAlias = "UPDATED";
+                break;
+            case 10:
+                stateAlias = "UNINSTALLED";
+                break;
+            case 20:
+                stateAlias = "RESOLVED";
+                break;
+            case 40:
+                stateAlias = "UNRESOLVED";
+                break;
+            case 80:
+                stateAlias = "STARTING";
+                break;
+            case 100:
+                stateAlias = "STOPPING";
+                break;
+            case 200:
+                stateAlias = "LAZY_ACTIVATION";
+                break;
+            case 32:
+                stateAlias = "RENAME_FILE_ACTION";
+                break;
+            default:
+                stateAlias +=  " (" + state + ") ";
+            }
+            
+            String l = "Bundle " + bundle.getBundle().getLocation() + "; ";
+            if (bundle.getBundle().getVersion() != null)
+            {
+                l += "version: " + bundle.getBundle().getVersion().toString() + "; ";
+                l += "bundle id: " + bundle.getBundle().getBundleId() + "; ";
+            }
+            l += " is in state " + stateAlias;
+            m_logger.log(Level.FINE, l);
         }
-        
-        String l = "Bundle " + bundle.getBundle().getLocation() + "; ";
-        if (bundle.getBundle().getVersion() != null)
-        {
-            l += "version: " + bundle.getBundle().getVersion().toString() + "; ";
-            l += "bundle id: " + bundle.getBundle().getBundleId() + "; ";
+        catch (Exception e)
+        {            
+            m_logger.log(Level.SEVERE, "Exception :: bundleChanged : ");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
         }
-        l += " is in state " + stateAlias;
-        m_logger.log(Level.FINE, l);
     }
    
+    private void sendError(Throwable t)
+    {
+        try
+        {
+            String json = getSerializedEventError(t);            
+            m_loadEventSource.fireEvent(new String[] { json });                          
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE, "Exception :: sendError :");
+            m_logger.log(Level.SEVERE, e.getMessage(), e);
+        }
+    }
+    
     /**
      * 
      * @param state unloaded, loading, loaded
@@ -983,7 +1131,7 @@ public class AppletLauncher
             state = "connected";
         }
         double progress = ((double) e.getProgress() / 
-            (double) e.getExpected()) * 100;
+            (double) e.getExpected()) * 100;        
         return '{' + "\"package\":\"loader\",\"type\":\"" + 
             JS_EVT_DOWNLOAD + "\",\"details\":{\"progress\":\"" + 
                 ((int) Math.floor(progress)) + "\",\"url\":\"" +  
@@ -991,5 +1139,11 @@ public class AppletLauncher
                         "\", \"message\":\"" +                
                             state + "\"}" + '}';        
     }
+            
+    private String getSerializedEventError(Throwable t)
+    {                
+        return '{' + "\"package\":\"loader\",\"type\":\"error\"," + 
+            "\"details\":\"" + t.getMessage() + "\"" + '}';
+    }  
         
 }
