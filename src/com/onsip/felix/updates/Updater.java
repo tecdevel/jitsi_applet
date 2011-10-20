@@ -479,28 +479,36 @@ public class Updater
                         m_logger.log(Level.INFO, "Required Cache.Version " + vConfig);
                         if (vConfig != null)
                         {
-                            String localCacheV = readCacheVersion();
-                            if (localCacheV != null && localCacheV.length() > 0)
+                            String localCacheV = readCacheVersion();                            
+                            Version vLocalCacheV = null; 
+                            try
                             {
-                                Version vLocalCacheV = Version.parseVersion(localCacheV);
-                                if (vLocalCacheV.compareTo(vConfig) != 0)
-                                {                    
-                                    m_logger.log(Level.INFO, 
-                                        "Attempt to delete cache store " + 
-                                            localCacheV);
-                                    cleanFelixCacheDir();
-                                    cleanGlobalCache = true;
-                                    setCacheVersion(vConfig.toString());
+                                if (localCacheV.length() == 0)
+                                {
+                                    localCacheV = null;
                                 }
-                                /* 
-                                 * Do not overwrite cache.version if it's the 
-                                 * same as the server 
-                                 */
+                                vLocalCacheV = Version.parseVersion(localCacheV);                                
+                            } 
+                            catch(Exception e)
+                            {                                
+                                m_logger.log(Level.WARNING, "The locally held version of " + 
+                                    "the cache store could not be determined so " +
+                                        "scrap the felix cache and download everything");
+                                vLocalCacheV = null;
                             }
-                            else
-                            {
+                            if (vLocalCacheV == null || vLocalCacheV.compareTo(vConfig) != 0)
+                            {                    
+                                m_logger.log(Level.INFO, 
+                                    "Attempt to delete cache store " + 
+                                        localCacheV);
+                                cleanFelixCacheDir();
+                                cleanGlobalCache = true;
                                 setCacheVersion(vConfig.toString());
                             }
+                            /* 
+                             * Do not overwrite cache.version if it's the 
+                             * same as the server 
+                             */                            
                         }
                     } 
                     catch (Exception e)
