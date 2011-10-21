@@ -29,7 +29,7 @@
   <!-- ___________ MODIFY THIS __________      -->
   <!-- ###################################     -->
   <property name='applet.web.dest.dir'
-            location="${user.home}/public_html" />
+            location="../jn_sip_applet/www" />
 
   <!-- The jitsi_js directory on this          -->
   <!-- build machine                           -->
@@ -186,6 +186,17 @@
     <antcall target="delete-build-dir" />
   </target>
 
+  <!-- Sign the jar -->
+  <target name="sign-jar" description="sign the jar">
+    <input message="Please enter keystore password:" addproperty="keypass">
+      <handler classname="org.apache.tools.ant.input.SecureInputHandler" />
+    </input>
+
+    <signjar jar="${release.dir}/${deploy.jar}"
+             alias="onsip" storepass="${keypass}"
+             preservelastmodified="false" />
+  </target>
+
   <!-- Writes the new codebase to the archive.js file in the jitsi js    -->
   <!-- project. The it rebuilds jitsi.js. If this is not added, nothing  -->
   <!-- catastrophic will happen. It just makes development a bit easier  -->
@@ -259,6 +270,9 @@
          manifest="${lib.dir}/felix/META-INF/MANIFEST.MF" >
       <zipfileset dir="${lib.dir}/felix" />
     </jar>
+
+    <!-- sign the jar -->
+    <antcall target="sign-jar" />
 
     <!-- copy applet -->
     <antcall target="copy-applet" />
