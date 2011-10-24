@@ -65,6 +65,7 @@
   <property name="lib.dir" location="lib" />
   <property name="conf.dir" location="conf" />
   <property name="release.dir" location="release" />
+  <property name="sign.the.jar" value="false" />
 
   <!-- Setup the classpath, we only need felix.jar and  -->
   <!-- plugin.jar. However, plugin.jar is automatically -->
@@ -187,7 +188,7 @@
   </target>
 
   <!-- Sign the jar -->
-  <target name="sign-jar" description="sign the jar">
+  <target name="sign-jar" description="sign the jar" if="${sign.the.jar}">
     <input message="Please enter keystore password:" addproperty="keypass">
       <handler classname="org.apache.tools.ant.input.SecureInputHandler" />
     </input>
