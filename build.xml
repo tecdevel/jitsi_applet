@@ -58,6 +58,9 @@
   <property name='deployment.user.cachedir'
             value='${user.home}/Library/Caches/Java/cache' />
 
+  <!-- Set this flag to true if you want to sign the jar -->
+  <!-- in development, it's worthwhile to turn this off-->
+  <property name="sign.the.jar" value="true" />
 
   <!-- No need to mess around with these properties -->
   <property name="src.dir" location="src" />
@@ -65,7 +68,6 @@
   <property name="lib.dir" location="lib" />
   <property name="conf.dir" location="conf" />
   <property name="release.dir" location="release" />
-  <property name="sign.the.jar" value="false" />
 
   <!-- Setup the classpath, we only need felix.jar and  -->
   <!-- plugin.jar. However, plugin.jar is automatically -->
