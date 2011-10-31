@@ -6,3 +6,4 @@ bin
 .settings
 release
 target
+build.properties
