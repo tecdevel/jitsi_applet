@@ -37,7 +37,7 @@
   <!-- ___________ MODIFY THIS __________      -->
   <!-- ###################################     -->
   <property name="jitsi.js.dir"
-            location="../jitsi_js/" />
+            location="../jnx/lib/jitsi_js" />
 
   <!-- The 'jitsi.baseurl' property will       -->
   <!-- be used alongside the 'jitsi.js.dir'    -->
@@ -189,15 +189,31 @@
     <antcall target="delete-build-dir" />
   </target>
 
+
   <!-- Sign the jar -->
   <target name="sign-jar" description="sign the jar" if="${sign.the.jar}">
     <input message="Please enter keystore password:" addproperty="keypass">
       <handler classname="org.apache.tools.ant.input.SecureInputHandler" />
     </input>
 
+    <apply executable="pack200" parallel="false">
+      <arg value="--repack" />
+      <fileset dir="${release.dir}" includes="**/*.jar" />
+    </apply>
+
     <signjar jar="${release.dir}/${deploy.jar}"
              alias="onsip" storepass="${keypass}"
              preservelastmodified="false" />
+
+    <apply executable="pack200" parallel="false" dest="${release.dir}">
+        <arg value="--modification-time=latest"/>
+        <arg value="--deflate-hint=true"/>
+        <arg value="--segment-limit=-1"/>
+        <targetfile/>
+        <srcfile/>
+        <fileset dir="${release.dir}" includes="**/*.jar" />
+        <mapper type="glob" from="*" to="*.pack.gz" />
+    </apply>
   </target>
 
   <!-- Writes the new codebase to the archive.js file in the jitsi js    -->
@@ -223,9 +239,14 @@
     <echo
         message="# Try copying jar package ${deploy.jar} to ${applet.web.dest.dir}" />
     <mkdir dir="${applet.web.dest.dir}/releases/${deploy.jar.checksum}" />
-    <copy file="${release.dir}/${deploy.jar}"
-          todir="${applet.web.dest.dir}/releases/${deploy.jar.checksum}"
-          overwrite="true"/>
+
+    <copy todir="${applet.web.dest.dir}/releases/${deploy.jar.checksum}" overwrite="true">
+      <fileset dir="${release.dir}">
+<!--        <include name="**/*.jar"/> -->
+        <include name="**/*.gz"/>
+      </fileset>
+    </copy>
+
     <antcall target="make-jitsi-js-with-codebase" />
   </target>
 
