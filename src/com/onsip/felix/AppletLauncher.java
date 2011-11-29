@@ -14,7 +14,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.AccessController;
 import java.util.*;
+import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 import org.apache.felix.framework.util.Util;
 import org.apache.felix.main.AutoProcessor;
@@ -128,23 +131,27 @@ public class AppletLauncher
     private LoadEventSource m_loadEventSource = null;
     
     static 
-    {                                       
+    {           
         m_logger.setParent(java.util.logging.Logger.getLogger("com.onsip"));
         
-        Properties props = new Properties();            
-        props.setProperty(".level", java.util.logging.Level.INFO.toString());
-        
-        props.setProperty("handlers", "java.util.logging.ConsoleHandler");            
+        Properties props = new Properties();        
+        props.setProperty(".level", java.util.logging.Level.INFO.toString());        
+                                                       
+        props.setProperty("handlers",
+            "java.util.logging.ConsoleHandler");
+                        
         props.setProperty("java.util.logging.ConsoleHandler.level", 
             java.util.logging.Level.FINE.toString());
-        
+                    
         props.setProperty("com.onsip.level", 
             java.util.logging.Level.FINE.toString());
+                               
         props.setProperty("net.java.sip.communicator.level", 
-            java.util.logging.Level.SEVERE.toString());
+            java.util.logging.Level.INFO.toString());
+        
         props.setProperty("gov.nist", 
             java.util.logging.Level.SEVERE.toString());        
-                       
+                                                            
         try
         { 
             /*
@@ -163,7 +170,26 @@ public class AppletLauncher
             System.out.println("Error initializing log properties: " + e);
             e.printStackTrace(); 
         }            
-             
+        
+        /*
+         *  this is the only way in which I was able to setup the formatter
+         */
+        try
+        {
+            Handler[] handlers = Logger.getLogger("").getHandlers();            
+            for (int index = 0; index < handlers.length; index++)
+            {
+                if (handlers[index] instanceof java.util.logging.ConsoleHandler)
+                {                    
+                    handlers[index].setFormatter(new com.onsip.felix.LogFormatter());                                     
+                }
+            }            
+        }
+        catch (Throwable t)
+        {
+            System.err.println("There was an error setting up log formatting \n");
+        }
+        
         try
         {
             m_logger.info("Check for any old storage caches");
