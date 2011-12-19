@@ -22,7 +22,7 @@ public class Generic
     
     public enum Exported_API
     {
-        REGISTER, UNREGISTER, 
+        REGISTER, UNREGISTER, REREGISTER, 
         CALL_CREATE, CALL_TERMINATE, CALL_REQUESTED, INVITE, TRANSFER_CALL,
         SEND_TONE, MUTE, HOLD, DEFAULT_AUDIO_DEVICE, VOLUME; 
     }
@@ -106,6 +106,10 @@ public class Generic
                 else if (this.args.length == 7)
                 {
                     m = Register.getMethodWithServer(service);
+                }
+                else if (this.args.length == 0)
+                {
+                    m = Register.getMethodReRegister(service);
                 }
                 break;
             case UNREGISTER:
