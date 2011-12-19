@@ -147,7 +147,7 @@ public class AppletLauncher
             java.util.logging.Level.FINE.toString());
                                
         props.setProperty("net.java.sip.communicator.level", 
-            java.util.logging.Level.SEVERE.toString());
+            java.util.logging.Level.INFO.toString());
         
         props.setProperty("gov.nist", 
             java.util.logging.Level.SEVERE.toString());        
@@ -368,7 +368,25 @@ public class AppletLauncher
                 "error details " + e, e);  
         }
     }
-         
+        
+    private boolean reRegister()
+    {
+        try
+        {
+            String cb = this.getParameter("recover");                        
+            return (cb != null && cb.toLowerCase().trim().equals("true"));              
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE,
+                "Exception :: reRegister : ");
+            m_logger.log(Level.SEVERE,
+                "We couldn't access param callback for recover, " +                 
+                "error details " + e, e);  
+        }
+        return false;
+    }
+    
     private synchronized void setProxyFromParams()
     {
         try
@@ -576,7 +594,13 @@ public class AppletLauncher
             REGISTERED_COUNTER = EXPECTED_REGISTERED;          
             
             /* Check the availability of input devices */
-            Capabilities.getDefaultMicrophone();            
+            Capabilities.getDefaultMicrophone();  
+            
+            /* Are we recovering from a crash? */
+            if (reRegister())
+            {
+                this.api("REGISTER", new String[]{});
+            }
         }
         catch (NoDeviceFoundException ndfe)
         {
