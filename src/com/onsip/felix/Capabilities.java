@@ -124,6 +124,10 @@ public class Capabilities
                     supported = ((v.compareTo("5.1") >= 0) && 
                         isJavaVersionSupported());
                 }
+                else if(os.equals("linux"))
+                {
+                    supported = isJavaVersionSupported();
+                }
             }
             if (!supported)
             {
