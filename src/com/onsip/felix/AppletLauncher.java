@@ -128,8 +128,10 @@ public class AppletLauncher
            
     private static JSObject win = null;
     
-    private LoadEventSource m_loadEventSource = null;
+    private static int methodGetProgressExists = 0;
     
+    private LoadEventSource m_loadEventSource = null;
+            
     static 
     {           
         m_logger.setParent(java.util.logging.Logger.getLogger("com.onsip"));
@@ -1180,8 +1182,28 @@ public class AppletLauncher
         {
             state = "connected";
         }
-        double progress = ((double) e.getProgress() / 
-            (double) e.getExpected()) * 100;        
+        double progress = 0;
+        Method m = null;
+        try
+        {            
+            if (methodGetProgressExists != 1)
+            {
+                m = e.getClass().getMethod("reregister", new Class[]{});
+            }            
+            methodGetProgressExists = 2;
+        }
+        catch (Exception ex)
+        {
+            methodGetProgressExists = 0;
+            ex.printStackTrace();
+        }
+        
+        if (m != null)
+        {
+            progress = ((double) e.getProgress() /
+                (double) e.getExpected()) * 100;
+        }
+                
         return '{' + "\"package\":\"loader\",\"type\":\"" + 
             JS_EVT_DOWNLOAD + "\",\"details\":{\"progress\":\"" + 
                 ((int) Math.floor(progress)) + "\",\"url\":\"" +  
