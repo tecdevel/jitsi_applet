@@ -149,7 +149,7 @@ public class AppletLauncher
             java.util.logging.Level.FINE.toString());
                                
         props.setProperty("net.java.sip.communicator.level", 
-            java.util.logging.Level.SEVERE.toString());
+            java.util.logging.Level.INFO.toString());
         
         props.setProperty("gov.nist", 
             java.util.logging.Level.SEVERE.toString());        
@@ -1186,11 +1186,11 @@ public class AppletLauncher
         Method m = null;
         try
         {            
-            if (methodGetProgressExists != 1)
+            if (methodGetProgressExists == 1)
             {
-                m = e.getClass().getMethod("reregister", new Class[]{});
-            }            
-            methodGetProgressExists = 2;
+                m = e.getClass().getMethod("getProgress", new Class[]{});
+                methodGetProgressExists = 1;
+            }                        
         }
         catch (Exception ex)
         {
