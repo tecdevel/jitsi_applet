@@ -1183,32 +1183,21 @@ public class AppletLauncher
             state = "connected";
         }
         double progress = 0;
-        Method m = null;
-              
+                      
         if (methodGetProgressExists)
         {
             try
-            {
-                m = e.getClass().getMethod("getProgress", new Class[]{});
+            {                
+                progress = ((double) e.getProgress() /
+                    (double) e.getExpected()) * 100;                
             }
-            catch (SecurityException se)
+            catch (Exception se)
             {
                 AppletLauncher.methodGetProgressExists = false;                
                 se.printStackTrace();
-            }
-            catch (NoSuchMethodException nsme)
-            {
-                AppletLauncher.methodGetProgressExists = false;                    
-                nsme.printStackTrace();
-            }                
+            }                            
         }                        
-                
-        if (m != null && methodGetProgressExists)
-        {
-            progress = ((double) e.getProgress() /
-                (double) e.getExpected()) * 100;
-        }
-                
+                                        
         return '{' + "\"package\":\"loader\",\"type\":\"" + 
             JS_EVT_DOWNLOAD + "\",\"details\":{\"progress\":\"" + 
                 ((int) Math.floor(progress)) + "\",\"url\":\"" +  
