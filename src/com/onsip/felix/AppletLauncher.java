@@ -128,7 +128,7 @@ public class AppletLauncher
            
     private static JSObject win = null;
     
-    private static int methodGetProgressExists = 0;
+    private static boolean methodGetProgressExists = true;
     
     private LoadEventSource m_loadEventSource = null;
             
@@ -1186,15 +1186,14 @@ public class AppletLauncher
         Method m = null;
         try
         {            
-            if (methodGetProgressExists == 1)
+            if (methodGetProgressExists)
             {
-                m = e.getClass().getMethod("getProgress", new Class[]{});
-                methodGetProgressExists = 1;
+                m = e.getClass().getMethod("getProgress", new Class[]{});                
             }                        
         }
         catch (Exception ex)
         {
-            methodGetProgressExists = 0;
+            methodGetProgressExists = false;
             ex.printStackTrace();
         }
         
