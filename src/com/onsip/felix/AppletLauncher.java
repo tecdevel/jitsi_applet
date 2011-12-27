@@ -1184,19 +1184,25 @@ public class AppletLauncher
         }
         double progress = 0;
         Method m = null;
-        try
-        {            
-            if (methodGetProgressExists)
-            {
-                m = e.getClass().getMethod("getProgress", new Class[]{});                
-            }                        
-        }
-        catch (Exception ex)
+              
+        if (methodGetProgressExists)
         {
-            methodGetProgressExists = false;
-            ex.printStackTrace();
-        }
-        
+            try
+            {
+                m = e.getClass().getMethod("getProgress", new Class[]{});
+            }
+            catch (SecurityException se)
+            {
+                AppletLauncher.methodGetProgressExists = false;                
+                se.printStackTrace();
+            }
+            catch (NoSuchMethodException nsme)
+            {
+                AppletLauncher.methodGetProgressExists = false;                    
+                nsme.printStackTrace();
+            }                
+        }                        
+                
         if (m != null)
         {
             progress = ((double) e.getProgress() /
