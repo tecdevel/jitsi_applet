@@ -128,8 +128,10 @@ public class AppletLauncher
            
     private static JSObject win = null;
     
-    private LoadEventSource m_loadEventSource = null;
+    private static boolean methodGetProgressExists = true;
     
+    private LoadEventSource m_loadEventSource = null;
+            
     static 
     {           
         m_logger.setParent(java.util.logging.Logger.getLogger("com.onsip"));
@@ -147,7 +149,7 @@ public class AppletLauncher
             java.util.logging.Level.FINE.toString());
                                
         props.setProperty("net.java.sip.communicator.level", 
-            java.util.logging.Level.SEVERE.toString());
+            java.util.logging.Level.INFO.toString());
         
         props.setProperty("gov.nist", 
             java.util.logging.Level.SEVERE.toString());        
@@ -1180,8 +1182,22 @@ public class AppletLauncher
         {
             state = "connected";
         }
-        double progress = ((double) e.getProgress() / 
-            (double) e.getExpected()) * 100;        
+        double progress = 0;
+                      
+        if (methodGetProgressExists)
+        {
+            try
+            {                
+                progress = ((double) e.getProgress() /
+                    (double) e.getExpected()) * 100;                
+            }
+            catch (Exception se)
+            {
+                AppletLauncher.methodGetProgressExists = false;                
+                se.printStackTrace();
+            }                            
+        }                        
+                                        
         return '{' + "\"package\":\"loader\",\"type\":\"" + 
             JS_EVT_DOWNLOAD + "\",\"details\":{\"progress\":\"" + 
                 ((int) Math.floor(progress)) + "\",\"url\":\"" +  
