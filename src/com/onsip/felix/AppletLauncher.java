@@ -1203,7 +1203,7 @@ public class AppletLauncher
             }                
         }                        
                 
-        if (m != null)
+        if (m != null && methodGetProgressExists)
         {
             progress = ((double) e.getProgress() /
                 (double) e.getExpected()) * 100;
