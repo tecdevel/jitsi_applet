@@ -16,7 +16,6 @@ import java.security.AccessController;
 import java.util.*;
 import java.util.logging.Handler;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import org.apache.felix.framework.util.Util;
