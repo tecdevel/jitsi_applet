@@ -1190,8 +1190,7 @@ public class AppletLauncher
         double downloadCount = AppletLauncher.DOWNLOAD_COUNTER;        
         double expectedCount = AppletLauncher.EXPECTED_DOWNLOAD;        
         double progress = (downloadCount / expectedCount) * 100;
-        
-        System.out.println("THE PROGRESS " + progress + " COUNTER ON " + downloadCount);
+                
         if (progress > 100)
         {
             progress = 100;
