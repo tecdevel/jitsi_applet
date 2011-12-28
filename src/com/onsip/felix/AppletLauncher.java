@@ -79,7 +79,11 @@ public class AppletLauncher
     private final static int PERC_COMPLETE = 100;
         
     private final static int EXPECTED_REGISTERED = 37;
-    private static int REGISTERED_COUNTER = 0;
+    private final static int EXPECTED_DOWNLOAD = 44;
+    
+    private static int REGISTERED_COUNTER = 0;    
+    private static int DOWNLOAD_COUNTER = 0; 
+            
     
     /**
      * Client side javascript callback function   
@@ -127,11 +131,10 @@ public class AppletLauncher
     public static String CONFIG_URL = "";
            
     private static JSObject win = null;
-    
-    private static boolean methodGetProgressExists = true;
-    
-    private LoadEventSource m_loadEventSource = null;
             
+    private LoadEventSource m_loadEventSource = null;
+    
+    
     static 
     {           
         m_logger.setParent(java.util.logging.Logger.getLogger("com.onsip"));
@@ -1176,34 +1179,34 @@ public class AppletLauncher
         }
         else if (e.getState() == ProgressSource.State.DELETE)
         {
+            AppletLauncher.DOWNLOAD_COUNTER++;
             state = "complete";
         }
         else if (e.getState() == ProgressSource.State.CONNECTED)
         {
             state = "connected";
         }
-        double progress = 0;
-                      
-        if (methodGetProgressExists)
+        
+        double downloadCount = AppletLauncher.DOWNLOAD_COUNTER;        
+        double expectedCount = AppletLauncher.EXPECTED_DOWNLOAD;        
+        double progress = (downloadCount / expectedCount) * 100;
+        
+        System.out.println("THE PROGRESS " + progress + " COUNTER ON " + downloadCount);
+        if (progress > 100)
         {
-            try
-            {                
-                progress = ((double) e.getProgress() /
-                    (double) e.getExpected()) * 100;                
-            }
-            catch (Exception se)
-            {
-                AppletLauncher.methodGetProgressExists = false;                
-                se.printStackTrace();
-            }                            
-        }                        
-                                        
-        return '{' + "\"package\":\"loader\",\"type\":\"" + 
+            progress = 100;
+        }
+        
+        String json =  '{' + "\"package\":\"loader\",\"type\":\"" + 
             JS_EVT_DOWNLOAD + "\",\"details\":{\"progress\":\"" + 
                 ((int) Math.floor(progress)) + "\",\"url\":\"" +  
                     e.getURL().toExternalForm() + 
                         "\", \"message\":\"" +                
-                            state + "\"}" + '}';        
+                            state + "\"}" + '}';
+
+        m_logger.info(json);
+        
+        return json;
     }
             
     private String getSerializedEventError(Throwable t)
