@@ -151,7 +151,7 @@ public class AppletLauncher
             java.util.logging.Level.FINE.toString());
                                
         props.setProperty("net.java.sip.communicator.level", 
-            java.util.logging.Level.INFO.toString());
+            java.util.logging.Level.SEVERE.toString());
         
         props.setProperty("gov.nist", 
             java.util.logging.Level.SEVERE.toString());        
