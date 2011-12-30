@@ -145,7 +145,7 @@ public class Generic
                     m = PickupCall.getMethodForCallId(service);
                 }                
                 break;    
-            case SEND_TONE:
+            case SEND_TONE:                
                 if (this.args.length == 1)
                 {
                     m = DtmfKeyPress.getMethod(service);
@@ -153,7 +153,11 @@ public class Generic
                 else if(this.args.length == 2)
                 {
                     m = DtmfKeyPress.getMethodForCallId(service);
-                }                
+                }
+                else if (this.args.length == 3)
+                {                    
+                    m = DtmfKeyPress.getMethodForStartStop(service);
+                }
                 break;
             case MUTE:
                 if (this.args.length == 1)

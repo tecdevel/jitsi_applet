@@ -66,4 +66,16 @@ public class DtmfKeyPress
         
         return m;
     }
+    
+    public static Method getMethodForStartStop(Object service) 
+        throws SecurityException, NoSuchMethodException        
+    {                
+        Class<? extends Object> clazz =
+            service.getClass();
+    
+        Method m = clazz.getMethod("dispatchKeyEvent", 
+            new Class[]{String.class, char.class, Boolean.class});
+        
+        return m;
+    }
 }
