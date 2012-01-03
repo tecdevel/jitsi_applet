@@ -7,19 +7,22 @@ import java.util.Iterator;
 
 import com.onsip.felix.listeners.RegistrationListener;
 
-
 /**
- * RegistrationEventSource gets passed through Felix right into the Jitsi application which is running
- * our Custom Wrapper {@linkOnSipActivator}.  All our Wrapper needs to do is call <i>fireEvent</i> whenever
- * it deems an event is worthwhile enough to pass through to the UI.
+ * RegistrationEventSource gets passed through Felix right into the Jitsi
+ * application which is running our Custom Wrapper {@linkOnSipActivator}. All
+ * our Wrapper needs to do is call <i>fireEvent</i> whenever it deems an event
+ * is worthwhile enough to pass through to the UI.
  * 
- * This class, RegistrationEventSource, will be responsible for - possibly - translating the event
- * into some event object (i.e. RegirationEvent) and sending those events to listeners.
+ * This class, RegistrationEventSource, will be responsible for - possibly -
+ * translating the event into some event object (i.e. RegirationEvent) and
+ * sending those events to listeners.
  * 
- * Our Registered Listeners (e.g. RegistrationStateChangeListener, will be setup in AppletLauncher if
- * there is an associated Javascript function), and will be responsible for delivering callbacks down to the DOM)
- * @author oren
- *
+ * Our Registered Listeners (e.g. RegistrationStateChangeListener, will be setup
+ * in AppletLauncher if there is an associated Javascript function), and will be
+ * responsible for delivering callbacks down to the DOM)
+ * 
+ * @author Oren Forer
+ * 
  */
 public class RegistrationEventSource
 {    
