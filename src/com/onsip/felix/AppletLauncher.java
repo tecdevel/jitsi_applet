@@ -80,10 +80,11 @@ public class AppletLauncher
     private final static int EXPECTED_REGISTERED = 37;
     private final static int EXPECTED_DOWNLOAD = 44;
     
+    private static Map<String, Integer> DOWNLOADS_COMPLETED = 
+        Collections.synchronizedMap(new HashMap<String, Integer>(50));
+        
     private static int REGISTERED_COUNTER = 0;    
-    private static int DOWNLOAD_COUNTER = 0; 
-            
-    
+                        
     /**
      * Client side javascript callback function   
      */
@@ -1169,7 +1170,7 @@ public class AppletLauncher
     {        
         String state = "";
         if (e.getState() == ProgressSource.State.NEW)
-        {
+        {            
             state = "started";
         }
         else if (e.getState() == ProgressSource.State.UPDATE)
@@ -1177,16 +1178,35 @@ public class AppletLauncher
             state = "downloading";
         }
         else if (e.getState() == ProgressSource.State.DELETE)
-        {
-            AppletLauncher.DOWNLOAD_COUNTER++;
-            state = "complete";
+        {            
+            if (e.getURL() != null)
+            {
+                String urlHcKey = e.getURL().toExternalForm();                        
+                if (urlHcKey != null && urlHcKey.endsWith(".jar"));
+                {
+                    int idx = urlHcKey.lastIndexOf('/');
+                    if (idx > -1)
+                    {
+                        urlHcKey = urlHcKey.substring(idx + 1);
+                    }
+                        
+                    if (!AppletLauncher.DOWNLOADS_COMPLETED.containsKey(urlHcKey))
+                    {                
+                        m_logger.info("");
+                        m_logger.info("Downloaded: " + urlHcKey);
+                        m_logger.info("");                        
+                        AppletLauncher.DOWNLOADS_COMPLETED.put(urlHcKey, 0);
+                    }
+                }
+                state = "complete";
+            }
         }
         else if (e.getState() == ProgressSource.State.CONNECTED)
         {
             state = "connected";
         }
         
-        double downloadCount = AppletLauncher.DOWNLOAD_COUNTER;        
+        double downloadCount = AppletLauncher.DOWNLOADS_COMPLETED.size();        
         double expectedCount = AppletLauncher.EXPECTED_DOWNLOAD;        
         double progress = (downloadCount / expectedCount) * 100;
                 
