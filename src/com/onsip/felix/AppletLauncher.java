@@ -299,28 +299,37 @@ public class AppletLauncher
                         @Override
                         public void progressFinish(ProgressEvent e)
                         {
-                            m_loadEventSource.fireEvent(
-                                new String[] 
-                                   { getSerializedDownloadEvent(e) });                            
-                            m_logger.log(Level.FINE, "Download finished " + e);                            
+                            if (REGISTERED_COUNTER == 0)
+                            {
+                                m_loadEventSource.fireEvent(
+                                    new String[] 
+                                               { getSerializedDownloadEvent(e) });                            
+                                m_logger.log(Level.FINE, "Download finished " + e);
+                            }
                         }
         
                         @Override
                         public void progressStart(ProgressEvent e)
-                        {                                    
-                            m_loadEventSource.fireEvent(
-                                new String[] 
-                                   { getSerializedDownloadEvent(e) });
-                            m_logger.log(Level.FINE, "Download started " + e);
+                        {       
+                            if (REGISTERED_COUNTER == 0)
+                            {
+                                m_loadEventSource.fireEvent(
+                                    new String[] 
+                                               { getSerializedDownloadEvent(e) });
+                                m_logger.log(Level.FINE, "Download started " + e);
+                            }
                         }
         
                         @Override
                         public void progressUpdate(ProgressEvent e)
                         {
-                            m_loadEventSource.fireEvent(
-                                new String[] 
-                                   { getSerializedDownloadEvent(e) });
-                            m_logger.log(Level.FINE, "Download updated " + e);
+                            if (REGISTERED_COUNTER == 0)
+                            {
+                                m_loadEventSource.fireEvent(
+                                    new String[] 
+                                               { getSerializedDownloadEvent(e) });
+                                m_logger.log(Level.FINE, "Download updated " + e);
+                            }
                         }
                     });
         }
@@ -1182,20 +1191,24 @@ public class AppletLauncher
             if (e.getURL() != null)
             {
                 String urlHcKey = e.getURL().toExternalForm();                        
-                if (urlHcKey != null && urlHcKey.endsWith(".jar"));
+                if (urlHcKey != null && urlHcKey.length() > 0);
                 {
-                    int idx = urlHcKey.lastIndexOf('/');
-                    if (idx > -1)
+                    String jarExt = urlHcKey.substring(urlHcKey.length() - 4);                    
+                    if (jarExt.equalsIgnoreCase(".jar"))
                     {
-                        urlHcKey = urlHcKey.substring(idx + 1);
-                    }
-                        
-                    if (!AppletLauncher.DOWNLOADS_COMPLETED.containsKey(urlHcKey))
-                    {                
-                        m_logger.info("");
-                        m_logger.info("Downloaded: " + urlHcKey);
-                        m_logger.info("");                        
-                        AppletLauncher.DOWNLOADS_COMPLETED.put(urlHcKey, 0);
+                        int idx = urlHcKey.lastIndexOf('/');
+                        if (idx > -1)
+                        {
+                            urlHcKey = urlHcKey.substring(idx + 1);
+                        }
+                            
+                        if (!AppletLauncher.DOWNLOADS_COMPLETED.containsKey(urlHcKey))
+                        {                
+                            m_logger.info("");
+                            m_logger.info("Downloaded: " + urlHcKey);
+                            m_logger.info("");                        
+                            AppletLauncher.DOWNLOADS_COMPLETED.put(urlHcKey, 0);
+                        }
                     }
                 }
                 state = "complete";
