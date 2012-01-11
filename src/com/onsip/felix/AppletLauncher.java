@@ -250,15 +250,23 @@ public class AppletLauncher
             Object a2m = 
                 Class.forName("sun.plugin2.applet.Applet2ClassLoader");
             
-            if (a2m != null){                
-                @SuppressWarnings("rawtypes")
-                Class[] c = new Class[] { boolean.class };
-                Method m = this.getClass().getClassLoader().
-                    getClass().getMethod("setCodebaseLookup", c);
-                m.invoke(this.getClass().getClassLoader(), 
-                    new Object[]{ false });                                
+            try
+            {
+                if (a2m != null){                
+                    @SuppressWarnings("rawtypes")
+                    Class[] c = new Class[] { boolean.class };
+                    Method m = this.getClass().getClassLoader().
+                        getClass().getMethod("setCodebaseLookup", c);
+                    m.invoke(this.getClass().getClassLoader(), 
+                        new Object[]{ false });
+                }
+            }             
+            catch (Exception ex)
+            {
+                m_logger.log(Level.WARNING, "Exception :: init : ");
+                m_logger.log(Level.WARNING, 
+                    "Failed on setting codebase lookup property, ignoring", ex);
             }
-                                     
             setupDownloadMonitoring();
             
             initFramework(new String[] {});                        
