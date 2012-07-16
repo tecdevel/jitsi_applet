@@ -413,19 +413,7 @@ public class AppletLauncher
     {
         try
         {
-            String serverAddress = this.getParameter("server_address");
             String proxyAddress = this.getParameter("proxy_address");
-            String proxyPort = this.getParameter("proxy_port");
-            
-            if (serverAddress != null)
-            {
-                serverAddress = serverAddress.trim();
-                if (serverAddress.length() > 0)
-                {
-                    System.setProperty(ACCOUNT_PREFIX + 
-                        "SERVER_ADDRESS", serverAddress);
-                }
-            }
             if (proxyAddress != null)
             {
                 proxyAddress = proxyAddress.trim();
@@ -435,16 +423,6 @@ public class AppletLauncher
                         "PROXY_ADDRESS", proxyAddress);
                 }
             }
-            
-            if (proxyPort != null)
-            {
-                proxyPort = proxyPort.trim();
-                if (proxyPort.length() > 0)
-                {
-                    System.setProperty(ACCOUNT_PREFIX + 
-                        "PROXY_PORT", proxyPort);
-                }
-            }          
         }
         catch(Exception e)
         {
