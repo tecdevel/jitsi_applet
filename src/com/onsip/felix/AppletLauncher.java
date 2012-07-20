@@ -17,6 +17,7 @@ import java.util.*;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.Timer;
 
 import org.apache.felix.framework.util.Util;
 import org.apache.felix.main.AutoProcessor;
@@ -62,7 +63,7 @@ public class AppletLauncher
 {        
     private final static java.util.logging.Logger m_logger = 
         java.util.logging.Logger.getLogger(AppletLauncher.class.getName());
- 
+
     private static final String ACCOUNT_PREFIX = "com.onsip.accounts";
     
     private final static String JS_EVT_LOADING = "loading";
@@ -84,7 +85,9 @@ public class AppletLauncher
         Collections.synchronizedMap(new HashMap<String, Integer>(50));
         
     private static int REGISTERED_COUNTER = 0;    
-                        
+
+    private static long STORE_LAST_API_CALL = 0;
+
     /**
      * Client side javascript callback function   
      */
@@ -989,15 +992,17 @@ public class AppletLauncher
     /**
      * Currently the only exported OnSIP function
      * 
-     * @param fnName
-     * @param args
+     * @param fnName the function to call
+     * @param args arguments
      * @return
      */
-    public boolean api(String fnName, String [] args)
+    public synchronized boolean api(final String fnName, final String [] args)
     {
         try
         {
-            m_logger.log(Level.FINE, "In api call " + fnName + " " + args.length);
+            m_logger.log(Level.FINE, "In api call " +
+                fnName + " with " + args.length + " # of args");
+
             for (int i=0; i < args.length ; i++)
             {
                 if (!fnName.equalsIgnoreCase("register"))
@@ -1005,7 +1010,35 @@ public class AppletLauncher
                     m_logger.log(Level.FINE, "arg " + i + " => " + args[i]);
                 }
             }
-            AccessController.doPrivileged(new Generic(fnName, args));
+
+            /**
+             * This bit of functionality is meant to throttle
+             * consecutive calls to the api by consuming
+             * javascript clients
+             */
+            int delay = 0; //milliseconds
+
+            long current =  System.currentTimeMillis();
+            long tmpDelay = current - STORE_LAST_API_CALL;
+            if (tmpDelay < 500)
+            {
+                // delay between 1/2 second and 1 second delay
+                delay = 500 + ((int) Math.round(Math.random() * 500));
+                m_logger.log(Level.FINE, "Throttle api call " + delay + " millis");
+            }
+
+            STORE_LAST_API_CALL = current;
+
+            ActionListener apiCallTask = new ActionListener() {
+                public void actionPerformed(ActionEvent evt) {
+                    AccessController.doPrivileged(new Generic(fnName, args));
+                }
+            };
+
+            Timer tCallApi = new Timer(delay, apiCallTask);
+            tCallApi.setRepeats(false);
+            tCallApi.start();
+
             return true;
         }
         catch (Exception e)
@@ -1015,7 +1048,7 @@ public class AppletLauncher
         }
         return false; 
     }
-                       
+
     public void serviceChanged(ServiceEvent event)
     {        
         try
