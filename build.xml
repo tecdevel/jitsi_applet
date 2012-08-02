@@ -189,9 +189,11 @@
 
   <!-- Sign the jar -->
   <target name="sign-jar" description="sign the jar" if="${sign.the.jar}">
+    <!--
     <input message="Please enter keystore password:" addproperty="keypass">
       <handler classname="org.apache.tools.ant.input.SecureInputHandler" />
     </input>
+    -->
 
     <apply executable="pack200" parallel="false">
       <arg value="--repack" />
@@ -199,7 +201,7 @@
     </apply>
 
     <signjar jar="${release.dir}/${deploy.jar}"
-             alias="onsip" storepass="${keypass}"
+             alias="lib_onsip" storepass="${sign.storepasswd}" keystore="${sign.keystore}"
              preservelastmodified="false" />
 
     <apply executable="pack200" parallel="false" dest="${release.dir}">
@@ -229,8 +231,10 @@
 
   <!-- Deploy applet to a production folder -->
   <target name="copy-applet" description="deploy applet" if="applet.dir.copy">
+    <!--
     <checksum file="${release.dir}/${deploy.jar}"
               property="deploy.jar.checksum" algorithm="SHA"/>
+    -->
     <echo
         message="# Generated checksum for jar -> ${deploy.jar.checksum}" />
     <echo
