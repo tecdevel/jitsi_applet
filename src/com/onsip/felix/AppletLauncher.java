@@ -168,6 +168,12 @@ public class AppletLauncher
         props.setProperty("com.onsip.level",
             java.util.logging.Level.FINE.toString());
 
+        props.setProperty("org.jitsi.level",
+            java.util.logging.Level.SEVERE.toString());
+
+        props.setProperty("org.jitsi.impl.level",
+            java.util.logging.Level.SEVERE.toString());
+
         props.setProperty("net.java.sip.communicator.level",
             java.util.logging.Level.SEVERE.toString());
 
@@ -437,6 +443,9 @@ public class AppletLauncher
                 System.setProperty("onsip.js.callback", cb);
                 JS_FN_EXPORTED = cb;
             }
+            System.setProperty(
+                "net.java.sip.communicator.packetlogging.PACKET_LOGGING_ENABLED",
+                "false");
         }
         catch(Exception e)
         {
@@ -445,6 +454,179 @@ public class AppletLauncher
             m_logger.log(Level.SEVERE,
                 "We couldn't set the javascript callback function, " +
                 "we'll default to [" + JS_FN_EXPORTED + "]," +
+                "error details " + e, e);
+        }
+    }
+
+    private void setupJitsiEnv()
+    {
+        try
+        {
+            System.setProperty(
+                "net.sf.fmj.utility.JmfRegistry.disableLoad",
+                    "false");
+
+            String scHomeDir =
+                System.getProperty("deployment.user.cachedir");
+
+            if (scHomeDir == null)
+            {
+                scHomeDir = System.getProperty("user.home");
+            }
+
+            System.setProperty(
+                "net.java.sip.communicator.SC_HOME_DIR_LOCATION",
+                    scHomeDir);
+
+            System.setProperty(
+                "net.java.sip.communicator.PNAME_SC_HOME_DIR_LOCATION",
+                    scHomeDir);
+
+            System.setProperty(
+                "net.java.sip.communicator.SC_HOME_DIR_NAME",
+                    ".sip-communicator");
+
+            System.setProperty(
+                "net.java.sip.communicator.PNAME_SC_HOME_DIR_NAME",
+                    ".sip-communicator");
+
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.SEVERE,
+                "Exception :: setupJitsiEnv : ");
+            m_logger.log(Level.SEVERE,
+                "We couldn't set requisite jitsi props  " +
+                "(eg. default folder locations) ,error details " + e, e);
+        }
+    }
+
+    /* Allow applet to specify debugging options */
+    private void setLogging()
+    {
+        /**
+         * Initially, we want to turn off all logging
+         * related to features we don't care about (e.g. Jabber)
+         */
+        try
+        {
+            // turn off regardless
+            System.setProperty(
+                "net.java.sip.communicator.packetlogging.PACKET_LOGGING_ENABLED",
+                "false");
+            System.setProperty(
+                "net.java.sip.communicator.packetlogging.PACKET_LOGGING_JABBER_ENABLED",
+                "false");
+            System.setProperty(
+                "net.java.sip.communicator.packetlogging.PACKET_LOGGING_ICE4J_ENABLED",
+                "false");
+            System.setProperty(
+                "net.java.sip.communicator.packetlogging.PACKET_LOGGING_SIP_ENABLED",
+                "false");
+            System.setProperty(
+                "net.java.sip.communicator.packetlogging.PACKET_LOGGING_RTP_ENABLED",
+                "false");
+        }
+        catch(Exception ex)
+        {
+            // shouldn't fail, but ignore regardless
+        }
+        try
+        {
+            String debug = this.getParameter("applet_debug_level");
+            int debugLevel = 0;
+
+            if (debug != null && debug.length() > 0)
+            {
+                try
+                {
+                    debugLevel = Integer.parseInt(debug);
+                }
+                catch(NumberFormatException ex)
+                {
+                    debugLevel = 0;
+                }
+
+                System.out.println("Setting logging level to " + debugLevel);
+
+                if (debugLevel > 0 && debugLevel <= 4)
+                {
+                    m_logger.setParent(java.util.logging.Logger.getLogger("com.onsip"));
+
+                    Properties props = new Properties();
+                    props.setProperty(".level", java.util.logging.Level.INFO.toString());
+
+                    props.setProperty("handlers",
+                        "java.util.logging.ConsoleHandler");
+
+                    props.setProperty("java.util.logging.ConsoleHandler.level",
+                        java.util.logging.Level.FINE.toString());
+
+                    props.setProperty("com.onsip.level",
+                        java.util.logging.Level.SEVERE.toString());
+
+                    props.setProperty("org.jitsi.level",
+                        java.util.logging.Level.SEVERE.toString());
+
+                    props.setProperty("org.jitsi.impl.level",
+                        java.util.logging.Level.SEVERE.toString());
+
+                    props.setProperty("net.java.sip.communicator.level",
+                        java.util.logging.Level.SEVERE.toString());
+
+                    props.setProperty("gov.nist",
+                        java.util.logging.Level.SEVERE.toString());
+
+                    if (debugLevel >= 1)
+                    {
+                        props.setProperty("com.onsip.level",
+                            java.util.logging.Level.FINE.toString());
+
+                        if (debugLevel >= 2)
+                        {
+                            props.setProperty("org.jitsi.impl.level",
+                                java.util.logging.Level.FINE.toString());
+
+                            if (debugLevel >= 3)
+                            {
+                                props.setProperty("net.java.sip.communicator.level",
+                                    java.util.logging.Level.FINE.toString());
+
+                                props.setProperty("org.jitsi.level",
+                                    java.util.logging.Level.FINE.toString());
+
+                                System.setProperty(
+                                    "net.java.sip.communicator.packetlogging.PACKET_LOGGING_SIP_ENABLED",
+                                    "true");
+                                System.setProperty(
+                                    "net.java.sip.communicator.packetlogging.PACKET_LOGGING_RTP_ENABLED",
+                                    "true");
+
+                                if (debugLevel >= 4)
+                                {
+                                    props.setProperty("gov.nist",
+                                        java.util.logging.Level.FINE.toString());
+                                }
+                            }
+                        }
+                    }
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    props.store(baos, null);
+                    byte[] data = baos.toByteArray();
+                    baos.close();
+                    ByteArrayInputStream bais = new ByteArrayInputStream(data);
+                    java.util.logging.LogManager.getLogManager().readConfiguration(bais);
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            m_logger.log(Level.WARNING,
+                "Exception :: setLogging : ");
+            m_logger.log(Level.WARNING,
+                "We couldn't set the javascript debug option, " +
+                "we'll default to turning off all logging," +
                 "error details " + e, e);
         }
     }
@@ -513,6 +695,12 @@ public class AppletLauncher
 
         /* Proxy details passed through embed parameters */
         setProxyFromParams();
+
+        /* Setup logging options */
+        setLogging();
+
+        /* Setup Jitsi specific props **/
+        setupJitsiEnv();
 
         try
         {
@@ -793,6 +981,7 @@ public class AppletLauncher
                 {
                     // Nothing we can do.
                 }
+
                 return;
             }
 
