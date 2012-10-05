@@ -490,6 +490,9 @@ public class AppletLauncher
                 "net.java.sip.communicator.PNAME_SC_HOME_DIR_NAME",
                     ".sip-communicator");
 
+            System.setProperty(
+                "net.java.sip.communicator.service.media.DISABLE_VIDEO_SUPPORT",
+                    "true");
         }
         catch(Exception e)
         {
