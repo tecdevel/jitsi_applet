@@ -200,7 +200,7 @@
       <fileset dir="${release.dir}" includes="**/*.jar" />
     </apply>
 
-    <signjar jar="${release.dir}/${deploy.jar}"
+    <signjar jar="${release.dir}/${deploy.jar}" keystore="${sign.keystore}"
              alias="lib_onsip" storepass="foobar"
              preservelastmodified="false" />
 
