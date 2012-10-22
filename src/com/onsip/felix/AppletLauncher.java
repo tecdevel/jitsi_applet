@@ -143,6 +143,15 @@ public class AppletLauncher
     public static final String CONFIG_PROPERTIES_FILE_VALUE =
         "felix.onsip.properties";
 
+    /**
+     * This flag is flipped to true if the applet's crashed.
+     * It's jitsi js that notifies the applet
+     * of the crash. Subsequent loading events passed
+     * passed down to the client javascript handlers
+     * from the applet will include this flag.
+     **/
+    private static boolean RECOVERY_MODE = false;
+
     private static Framework m_fwk = null;
 
     public static String CONFIG_URL = "";
@@ -634,22 +643,22 @@ public class AppletLauncher
         }
     }
 
-    private boolean reRegister()
+    private void setRecoveryModeFlag()
     {
         try
         {
             String cb = this.getParameter("recover");
-            return (cb != null && cb.toLowerCase().trim().equals("true"));
+            RECOVERY_MODE = (cb != null && cb.toLowerCase().trim().equals("true"));
         }
         catch(Exception e)
         {
+            RECOVERY_MODE = false;
             m_logger.log(Level.SEVERE,
                 "Exception :: reRegister : ");
             m_logger.log(Level.SEVERE,
                 "We couldn't access param callback for recover, " +
                 "error details " + e, e);
         }
-        return false;
     }
 
     private synchronized void setProxyFromParams()
@@ -704,6 +713,9 @@ public class AppletLauncher
 
         /* Setup Jitsi specific props **/
         setupJitsiEnv();
+
+        /* Did the applet crash, and are we recovering from it */
+        setRecoveryModeFlag();
 
         try
         {
@@ -846,12 +858,6 @@ public class AppletLauncher
 
             /* Check the availability of input devices */
             Capabilities.getDefaultMicrophone();
-
-            /* Are we recovering from a crash? */
-            if (reRegister())
-            {
-                this.api("REGISTER", new String[]{});
-            }
         }
         catch (NoDeviceFoundException ndfe)
         {
@@ -1271,8 +1277,8 @@ public class AppletLauncher
             long tmpDelay = current - STORE_LAST_API_CALL;
             if (tmpDelay < 500)
             {
-                // delay between 1/2 second and 1 second delay
-                delay = 500 + ((int) Math.round(Math.random() * 500));
+                // delay ~ 1/2 sec
+                delay = 500 + ((int) Math.round(Math.random() * 100));
                 m_logger.log(Level.FINE, "Throttle api call " + delay + " millis");
             }
 
@@ -1457,7 +1463,8 @@ public class AppletLauncher
         return '{' + "\"package\":\"loader\",\"type\":\"" +
             state + "\",\"details\":{\"progress\":\"" +
                 (int) Math.abs(progress) + "\",\"message\":\"" +
-                    msg + "\"}" + '}';
+                    msg + "\"," + "\"recovery\":\"" +
+                        RECOVERY_MODE + "\"}" + '}';
     }
 
     private static String getSerializedDownloadEvent(ProgressEvent e)

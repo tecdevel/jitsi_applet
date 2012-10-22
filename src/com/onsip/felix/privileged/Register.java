@@ -59,18 +59,7 @@ public class Register
                     
         return m;
     }
-    
-    public static Method getMethodReRegister(Object service)
-        throws SecurityException, NoSuchMethodException
-    {
-        Class<? extends Object> clazz =
-            service.getClass();
-        
-        Method m = clazz.getMethod("reregister", new Class[]{});
-                    
-        return m;
-    }
-    
+
     public static Method getMethodWithServer(Object service) 
         throws SecurityException, NoSuchMethodException        
     {                
