@@ -160,6 +160,7 @@ public class AppletLauncher
 
     private LoadEventSource m_loadEventSource = null;
 
+    private int percentCompleted = 0;
 
     static
     {
@@ -1255,15 +1256,47 @@ public class AppletLauncher
     {
         try
         {
+            if (fnName == null || args == null) return false;
+
             m_logger.log(Level.FINE, "In api call " +
                 fnName + " with " + args.length + " # of args");
 
+            /**
+             * Don't print private details associated with registering
+             */
             for (int i=0; i < args.length ; i++)
             {
                 if (!fnName.equalsIgnoreCase("register"))
                 {
                     m_logger.log(Level.FINE, "arg " + i + " => " + args[i]);
                 }
+            }
+
+            /**
+             * Echo functionality added as a way to verify that the
+             * applet is still running
+             */
+            if (fnName.equalsIgnoreCase("echo"))
+            {
+                String msg = (args.length > 0 && args[0] != null) ? args[0] : "";
+                m_loadEventSource.fireEvent(
+                    new String[]
+                       { getSerializedEvent("echo", msg, percentCompleted) });
+                return true;
+            }
+
+            /**
+             * Don't allow consuming js clients to start making api calls
+             * if the phone's bundles have not finished loading
+             */
+            if (percentCompleted < 100)
+            {
+                m_loadEventSource.fireEvent(
+                    new String[]
+                       { getSerializedEvent(JS_EVT_LOADING,
+                           "web phone has not finished loading",
+                               percentCompleted) });
+                return true;
             }
 
             /**
@@ -1460,9 +1493,10 @@ public class AppletLauncher
      */
     public String getSerializedEvent(String state, String msg, double progress)
     {
+        percentCompleted = (int) Math.abs(progress);
         return '{' + "\"package\":\"loader\",\"type\":\"" +
             state + "\",\"details\":{\"progress\":\"" +
-                (int) Math.abs(progress) + "\",\"message\":\"" +
+                percentCompleted + "\",\"message\":\"" +
                     msg + "\"," + "\"recovery\":\"" +
                         RECOVERY_MODE + "\"}" + '}';
     }
