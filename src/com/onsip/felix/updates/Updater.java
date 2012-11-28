@@ -596,34 +596,6 @@ public class Updater
                                     "details " + e.getMessage());
                     }
                 }
-
-                if (!cleanGlobalCache)
-                {
-                    String [] jarList = getJarsFromConfig(config);
-                    File [] fBundles = getOustedJarList(jarList);
-                    int count = 0;
-                    for (int i=0; i < fBundles.length; i++)
-                    {
-                        if (fBundles[i] != null)
-                        {
-                            if (fBundles[i].exists() &&
-                                fBundles[i].isDirectory())
-                            {
-                                count++;
-                                File bundle = fBundles[i];
-                                m_logger.log(Level.FINE, "Deleting folder " +
-                                    bundle.getAbsolutePath());
-                                String fileName = bundle.getName();
-                                File anew =
-                                    new File(bundle.getParent() +
-                                        SEPARATOR + "$" + fileName + "$");
-                                bundle.renameTo(anew);
-                                anew.delete();
-                            }
-                        }
-                    }
-                    m_logger.log(Level.FINE, "Found " + count + " bundles to delete");
-                }
             }
         }
         catch(Exception e)
@@ -956,82 +928,5 @@ public class Updater
             m_logger.log(Level.SEVERE, "Error while trying to read version", e);
         }
         return null;
-    }
-
-    private synchronized static File[] getOustedJarList(String [] hostedBundles)
-        throws Exception
-    {
-        File [] flagBundles = new File[0];
-        try
-        {
-            File felix = getFelixDir();
-            if (felix.exists() && felix.isDirectory())
-            {
-                File [] fBundles = felix.listFiles();
-                flagBundles = new File[fBundles.length];
-                int counter = 0;
-                for (int i=0; i < fBundles.length; i++)
-                {
-                    File bundle = fBundles[i];
-                    if (bundle.isDirectory())
-                    {
-                        if (bundle.getName().startsWith("$") &&
-                            bundle.getName().endsWith("$"))
-                        {
-                            continue;
-                        }
-
-                        File fLocation = new File(bundle.getPath() +
-                            SEPARATOR + "bundle.location");
-                        File fLastModified = new File(bundle.getPath() +
-                            SEPARATOR + "bundle.lastmodified");
-                        if (fLocation.exists() && fLastModified.exists())
-                        {
-                            String localLocation = readLocation(fLocation);
-                            /*
-                             * The currently install version
-                             */
-                            Version v = getVersion(bundle.getAbsolutePath());
-                            String localNoParam = localLocation;
-                            int idxQ = localLocation.indexOf("?");
-                            if (idxQ != -1)
-                            {
-                                //localNoParam = localNoParam.substring(0, idxQ);
-                            }
-                            if (v != null)
-                            {
-                                m_logger.log(Level.INFO,
-                                    "Installed version " +
-                                        v.toString() + " for bundle " +
-                                            localNoParam);
-                            }
-                            else
-                            {
-                                m_logger.log(Level.INFO,
-                                    "Could not identify installed version for " +
-                                        localNoParam);
-                            }
-
-                            for (int j=0; j < hostedBundles.length; j++)
-                            {
-                                String jar = hostedBundles[j];
-                                boolean update = isUpdateRequired(jar, localLocation, v);
-                                if (update)
-                                {
-                                    flagBundles[counter++] = bundle;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            m_logger.log(Level.SEVERE, "Exception :: getOustedJarList :");
-            m_logger.log(Level.SEVERE, e.getMessage(), e);
-        }
-        return flagBundles;
     }
 }
