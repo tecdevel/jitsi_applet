@@ -88,7 +88,7 @@ public class AppletLauncher
     private final static int PERC_CREATE_FRAMEWORK = 10;
     private final static int PERC_INIT_FRAMEWORK = 15;
     private final static int PERC_DOWNLOAD_FRAMEWORK = 20;
-    private final static int PERC_START_FRAMEWORK = 25;
+    private final static int PERC_START_FRAMEWORK = 60;
     private final static int PERC_SETUP_HANDLERS = 90;
     private final static int PERC_COMPLETE = 100;
 
@@ -381,7 +381,7 @@ public class AppletLauncher
                         @Override
                         public void progressFinish(ProgressEvent e)
                         {
-                            if (REGISTERED_COUNTER == 0)
+                            if (REGISTERED_COUNTER == 0 && percentCompleted < 100)
                             {
                                 m_loadEventSource.fireEvent(
                                     new String[]
@@ -393,7 +393,7 @@ public class AppletLauncher
                         @Override
                         public void progressStart(ProgressEvent e)
                         {
-                            if (REGISTERED_COUNTER == 0)
+                            if (REGISTERED_COUNTER == 0 && percentCompleted < 100)
                             {
                                 m_loadEventSource.fireEvent(
                                     new String[]
@@ -405,7 +405,7 @@ public class AppletLauncher
                         @Override
                         public void progressUpdate(ProgressEvent e)
                         {
-                            if (REGISTERED_COUNTER == 0)
+                            if (REGISTERED_COUNTER == 0 && percentCompleted < 100)
                             {
                                 m_loadEventSource.fireEvent(
                                     new String[]
@@ -608,6 +608,9 @@ public class AppletLauncher
                                 props.setProperty("org.jitsi.level",
                                     java.util.logging.Level.FINE.toString());
 
+                                props.setProperty("net.java.sip.communicator.impl.netaddr.level",
+                                    java.util.logging.Level.SEVERE.toString());
+
                                 System.setProperty(
                                     "net.java.sip.communicator.packetlogging.PACKET_LOGGING_SIP_ENABLED",
                                     "true");
@@ -618,6 +621,9 @@ public class AppletLauncher
                                 if (debugLevel >= 4)
                                 {
                                     props.setProperty("gov.nist",
+                                        java.util.logging.Level.FINE.toString());
+
+                                    props.setProperty("net.java.sip.communicator.impl.netaddr.level",
                                         java.util.logging.Level.FINE.toString());
                                 }
                             }
@@ -809,7 +815,7 @@ public class AppletLauncher
 
             m_fwk.getBundleContext().addServiceListener(this);
 
-            /* 25% Complete */
+            /* 60% Complete */
             m_loadEventSource.fireEvent(
                 new String[]
                    { this.getSerializedEvent
@@ -1258,15 +1264,19 @@ public class AppletLauncher
         {
             if (fnName == null || args == null) return false;
 
-            m_logger.log(Level.FINE, "In api call " +
-                fnName + " with " + args.length + " # of args");
+            boolean isEcho = fnName.equalsIgnoreCase("echo");
+            if (!isEcho)
+            {
+                m_logger.log(Level.FINE, "In api call " +
+                    fnName + " with " + args.length + " # of args");
+            }
 
             /**
              * Don't print private details associated with registering
              */
             for (int i=0; i < args.length ; i++)
             {
-                if (!fnName.equalsIgnoreCase("register"))
+                if (!fnName.equalsIgnoreCase("register") && !isEcho)
                 {
                     m_logger.log(Level.FINE, "arg " + i + " => " + args[i]);
                 }
@@ -1534,6 +1544,35 @@ public class AppletLauncher
                             m_logger.info("Downloaded: " + urlHcKey);
                             m_logger.info("");
                             AppletLauncher.DOWNLOADS_COMPLETED.put(urlHcKey, 0);
+
+                            double downloadCount = AppletLauncher.DOWNLOADS_COMPLETED.size();
+                            double expectedCount = AppletLauncher.EXPECTED_DOWNLOAD;
+                            double progress = (downloadCount / expectedCount);
+
+                            double percent =
+                                (((PERC_START_FRAMEWORK - PERC_DOWNLOAD_FRAMEWORK) * progress)) +
+                                    PERC_DOWNLOAD_FRAMEWORK;
+
+                            long percentCompleted = Math.round(percent);
+
+                            if (percentCompleted > PERC_START_FRAMEWORK)
+                            {
+                                percentCompleted = PERC_START_FRAMEWORK;
+                            }
+
+                            String msg = "download framework bundle " + e.getURL().toExternalForm();
+
+                            String json = '{' + "\"package\":\"loader\",\"type\":\"" +
+                                JS_EVT_LOADING + "\",\"details\":{\"progress\":\"" +
+                                    percentCompleted + "\",\"message\":\"" +
+                                        msg + "\"," + "\"recovery\":\"" +
+                                            RECOVERY_MODE + "\"}" + '}';
+
+                            if (downloadCount > 2)
+                            {
+                                m_logger.info(json);
+                                return json;
+                            }
                         }
                     }
                 }
