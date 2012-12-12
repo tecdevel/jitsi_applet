@@ -196,7 +196,14 @@ public class Generic
                 m = InputVolume.getMethod(service);
                 break;
             case PLAYBACK_VOLUME:
-                m = PlaybackVolume.getMethod(service);
+                if (this.args.length == 1)
+                {
+                    m = PlaybackVolume.getMethod(service);
+                }
+                else if(this.args.length == 2)
+                {
+                    m = PlaybackVolume.getMethodWithNotify(service);
+                }
                 break;
         }
 
