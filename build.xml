@@ -57,6 +57,14 @@
   <!-- ### READ FROM build.properties                -->
   <!-- <property name="sign.the.jar" value="true" /> -->
 
+  <!-- used in the new deploy target -->
+  <property name="keystore.loc.default"
+            value="/var/www/vhosts/com.onsip.lib/keystore" />
+  <property name="applet.loc.default"
+            value="/var/www/vhosts/com.onsip.lib/htdocs/jitsi-applet" />
+  <property name="applet.base.url.default"
+            value="http://lib.onsip.com/jitsi/releases" />
+
   <!-- No need to mess around with these properties -->
   <property name="src.dir" location="src" />
   <property name="build.dir" location="target" />
@@ -269,6 +277,17 @@
   <target name="delete-build-dir" description="delete the build folder">
     <echo message="# Delete build dir ${build.dir}" />
     <delete failonerror="false" includeemptydirs="true" dir="${build.dir}" />
+  </target>
+
+  <!-- help systems deploy this applet with minimal steps -->
+  <target name="deploy">
+    <property name="sign.the.jar" value="true" />
+    <property name="sign.keystore" value="${keystore.loc.default}" />
+
+    <taskdef name="deploy" classname="com.jnctn.ant.DeployAppletTask" />
+    <deploy
+      releasepath="${applet.loc.default}" baseurl="${applet.base.url.default}"/>
+    <antcall target="all" />
   </target>
 
   <!-- Default target -->
