@@ -65,6 +65,9 @@
   <property name="applet.base.url.default"
             value="http://lib.onsip.com/jitsi/releases" />
 
+  <property name="deploy.tar.name" value="deploy-jitsi-applet.tar" />
+  <property name="deploy.tar.basedir" value="${applet.loc.default}" />
+
   <!-- No need to mess around with these properties -->
   <property name="src.dir" location="src" />
   <property name="build.dir" location="target" />
@@ -280,14 +283,31 @@
   </target>
 
   <!-- help systems deploy this applet with minimal steps -->
-  <target name="deploy">
+  <target name="check-tar-props">
+    <condition property="build-tar-ok">
+      <and>
+        <available file="${deploy.tar.basedir}" type="dir"/>
+        <isset property="deploy.tar.name" />
+      </and>
+    </condition>
+  </target>
+
+  <target name="make-deploy-tar" if="build-tar-ok">
+    <echo message="creating tar file ${deploy.tar.name}" />
+    <tar destfile="${deploy.tar.name}" basedir="${deploy.tar.basedir}" />
+  </target>
+
+  <target name="deploy" depends="check-tar-props">
     <property name="sign.the.jar" value="true" />
     <property name="sign.keystore" value="${keystore.loc.default}" />
 
     <taskdef name="deploy" classname="com.jnctn.ant.DeployAppletTask" />
-    <deploy
-      releasepath="${applet.loc.default}" baseurl="${applet.base.url.default}"/>
-    <antcall target="all" />
+    <sequential>
+      <deploy releasepath="${applet.loc.default}"
+              baseurl="${applet.base.url.default}"/>
+      <antcall target="all" />
+      <antcall target="make-deploy-tar" />
+    </sequential>
   </target>
 
   <!-- Default target -->
