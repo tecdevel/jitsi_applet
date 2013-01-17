@@ -1,7 +1,7 @@
-package com.onsip.felix;
+/** Copyright (c) 2013 Junction Networks **/
 
-/*
- * Junction Networks 2011
+package com.onsip.felix;/*
+
  */
 
 import java.applet.Applet;
